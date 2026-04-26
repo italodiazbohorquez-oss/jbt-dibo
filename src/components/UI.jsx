@@ -34,15 +34,16 @@ export function Phone({ theme: T, children, dark = false }) {
   );
 }
 
-export function BtnPrimary({ theme: T, children, onClick, full, style, icon: Icon }) {
+export function BtnPrimary({ theme: T, children, onClick, full, style, icon: Icon, disabled }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} disabled={disabled} style={{
       background: T.accent, color: '#fff', border: 'none', borderRadius: 12,
       padding: '13px 18px', fontSize: 15, fontWeight: 700,
-      letterSpacing: '-.01em', cursor: 'pointer',
+      letterSpacing: '-.01em', cursor: disabled ? 'not-allowed' : 'pointer',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       width: full ? '100%' : 'auto',
       boxShadow: `0 1px 0 rgba(255,255,255,.2) inset, 0 6px 14px -6px ${T.accent}80`,
+      opacity: disabled ? .6 : 1,
       fontFamily: T.body, ...style,
     }}>
       {Icon && <Icon size={18} color="#fff"/>}

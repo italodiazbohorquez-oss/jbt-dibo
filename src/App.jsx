@@ -9,10 +9,12 @@ import { ScreenDetail } from './screens/client/ScreenDetail';
 import { ScreenQuote } from './screens/client/ScreenQuote';
 import { ScreenCheckout } from './screens/client/ScreenCheckout';
 import { ScreenTracking } from './screens/client/ScreenTracking';
+import { ScreenPedidos } from './screens/client/ScreenPedidos';
 import { ScreenFerreteria } from './screens/b2b/ScreenFerreteria';
 import { AdminDashboard } from './screens/admin/AdminDashboard';
 import { AdminRoutes } from './screens/admin/AdminRoutes';
 import { AdminInventory } from './screens/admin/AdminInventory';
+import { AdminPedidos } from './screens/admin/AdminPedidos';
 
 function MobileWrapper({ theme: T, children }) {
   return (
@@ -187,9 +189,11 @@ function AppContent() {
           <Route path="/cliente/detalle" element={<MobileWrapper theme={T}><ScreenDetail theme={T}/></MobileWrapper>}/>
           <Route path="/cliente/cotizador" element={<MobileWrapper theme={T}><ScreenQuote theme={T}/></MobileWrapper>}/>
           <Route path="/cliente/checkout" element={<MobileWrapper theme={T}><ScreenCheckout theme={T}/></MobileWrapper>}/>
+          <Route path="/cliente/pedidos" element={<MobileWrapper theme={T}><ScreenPedidos theme={T}/></MobileWrapper>}/>
           <Route path="/cliente/tracking" element={<MobileWrapper theme={T}><ScreenTracking theme={T}/></MobileWrapper>}/>
           <Route path="/b2b" element={<MobileWrapper theme={T}><ScreenFerreteria theme={T}/></MobileWrapper>}/>
           <Route path="/admin" element={<AdminDashboard theme={T}/>}/>
+          <Route path="/admin/pedidos" element={<AdminPedidos theme={T}/>}/>
           <Route path="/admin/rutas" element={<AdminRoutes theme={T}/>}/>
           <Route path="/admin/inventario" element={<AdminInventory theme={T}/>}/>
           <Route path="/admin/*" element={<AdminDashboard theme={T}/>}/>

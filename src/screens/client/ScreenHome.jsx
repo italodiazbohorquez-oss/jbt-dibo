@@ -5,11 +5,21 @@ import { Chip } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { TabBar } from './TabBar';
 import { getProductos } from '../../lib/api';
+import { useCart } from '../../context/CartContext';
 
 export function ScreenHome({ theme: T }) {
   const navigate = useNavigate();
+  const { agregar, totalItems } = useCart();
   const [productos, setProductos] = useState([]);
   const [filtro, setFiltro] = useState('Todos');
+  const [agregado, setAgregado] = useState(null);
+
+  function handleAgregar(e, p) {
+    e.stopPropagation();
+    agregar(p, 1);
+    setAgregado(p.id);
+    setTimeout(() => setAgregado(null), 1200);
+  }
 
   useEffect(() => { getProductos().then(({ data }) => setProductos(data)); }, []);
 
@@ -103,8 +113,8 @@ export function ScreenHome({ theme: T }) {
                   <div style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.display }}>S/{p.precio}</div>
                   <div style={{ fontSize: 10, color: T.ink3, marginTop: -2 }}>por {p.unidad}</div>
                 </div>
-                <button style={{ width: 30, height: 30, borderRadius: 9, background: T.accent, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <I.plus size={16} color="#fff"/>
+                <button onClick={(e) => handleAgregar(e, p)} style={{ width: 30, height: 30, borderRadius: 9, background: agregado === p.id ? T.ok : T.accent, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background .2s' }}>
+                  {agregado === p.id ? <I.check size={16} color="#fff"/> : <I.plus size={16} color="#fff"/>}
                 </button>
               </div>
             </div>
@@ -113,8 +123,25 @@ export function ScreenHome({ theme: T }) {
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 30, color: T.ink3, fontSize: 13 }}>Cargando productos...</div>
           )}
         </div>
-        <div style={{ height: 70 }}/>
+        <div style={{ height: 80 }}/>
       </div>
+
+      {totalItems > 0 && (
+        <div onClick={() => navigate('/cliente/checkout')} style={{
+          position: 'absolute', bottom: 72, left: 16, right: 16,
+          background: T.accent, borderRadius: 14, padding: '12px 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          cursor: 'pointer', boxShadow: `0 8px 20px ${T.accent}60`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ background: 'rgba(255,255,255,.25)', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: '#fff', fontWeight: 800, fontSize: 13 }}>{totalItems}</span>
+            </div>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>Ver pedido</span>
+          </div>
+          <I.chevR size={18} color="#fff"/>
+        </div>
+      )}
 
       <TabBar active="home" T={T}/>
     </div>
