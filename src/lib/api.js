@@ -123,6 +123,56 @@ export async function registrarMovimientoCaja({ tipo, concepto, monto, pedidoId 
   return { data, error };
 }
 
+// ── Gestión de productos (admin) ───────────────────────────
+export async function crearProducto(data) {
+  const { data: prod, error } = await supabase
+    .from('productos')
+    .insert({ ...data, activo: true })
+    .select()
+    .single();
+  return { data: prod, error };
+}
+
+export async function actualizarProducto(id, data) {
+  const { data: prod, error } = await supabase
+    .from('productos')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single();
+  return { data: prod, error };
+}
+
+// ── Choferes ───────────────────────────────────────────────
+export async function asignarChoferAPedido(pedidoId, choferId) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .update({ chofer_id: choferId })
+    .eq('id', pedidoId)
+    .select()
+    .single();
+  return { data, error };
+}
+
+export async function actualizarEstadoChofer(choferId, estado) {
+  const { data, error } = await supabase
+    .from('choferes')
+    .update({ estado })
+    .eq('id', choferId)
+    .select()
+    .single();
+  return { data, error };
+}
+
+export async function getPedidosEnRuta() {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select(`*, profiles(nombre, celular), pedido_items(*, productos(nombre, tipo, unidad))`)
+    .in('estado', ['confirmado', 'cargando', 'en_ruta'])
+    .order('created_at', { ascending: false });
+  return { data: data ?? [], error };
+}
+
 // ── KPIs Dashboard ─────────────────────────────────────────
 export async function getKPIs() {
   const today = new Date().toISOString().slice(0, 10);

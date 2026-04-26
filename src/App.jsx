@@ -16,6 +16,7 @@ import { AdminDashboard } from './screens/admin/AdminDashboard';
 import { AdminRoutes } from './screens/admin/AdminRoutes';
 import { AdminInventory } from './screens/admin/AdminInventory';
 import { AdminPedidos } from './screens/admin/AdminPedidos';
+import { ScreenRepartidor } from './screens/repartidor/ScreenRepartidor';
 
 const T = TOKENS.cantera;
 
@@ -208,6 +209,12 @@ function AppContent() {
   const { user, profile, loading } = useAuth();
 
   const isAdmin = location.pathname.startsWith('/admin');
+  const isRepartidor = location.pathname.startsWith('/repartidor');
+
+  // ── Ruta /repartidor — completamente independiente ────────────────────────
+  if (isRepartidor) {
+    return <ScreenRepartidor />;
+  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1410', fontFamily: T.body }}>
