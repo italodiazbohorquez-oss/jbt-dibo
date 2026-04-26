@@ -9,7 +9,7 @@ const TIPOS_CLIENTE = [
   {
     id: 'cliente',
     icon: '🏠',
-    titulo: 'Cliente directo',
+    titulo: 'Comprador',
     desc: 'Pedidos al por menor para tu casa u obra pequeña',
     beneficios: ['Pedidos desde 1 unidad', 'Dirección con GPS', 'Pago por Yape / Transferencia'],
     color: T.primary,

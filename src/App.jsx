@@ -24,10 +24,16 @@ function ClientTopNav({ themeKey, setThemeKey }) {
   const location = useLocation();
   const { profile, signOut } = useAuth();
   const { totalItems } = useCart();
-  const [showThemes, setShowThemes] = useState(false);
 
   const isClient = location.pathname.startsWith('/cliente');
   const isB2B = location.pathname.startsWith('/b2b');
+  const rol = profile?.rol;
+
+  // Maestro de obras sees both; cliente only sees Tienda
+  const navItems = [
+    rol !== 'ferreteria' && { path: '/cliente/home', label: 'Tienda', icon: '🏠', active: isClient },
+    (rol === 'maestro' || rol === 'ferreteria') && { path: '/b2b', label: 'Ferretería B2B', icon: '🏪', active: isB2B },
+  ].filter(Boolean);
 
   return (
     <nav style={{
@@ -37,7 +43,7 @@ function ClientTopNav({ themeKey, setThemeKey }) {
       display: 'flex', alignItems: 'center',
       padding: '0 24px', height: 52, fontFamily: T.body,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 28, cursor: 'pointer' }} onClick={() => navigate('/cliente/home')}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 28, cursor: 'pointer' }} onClick={() => navigate(rol === 'ferreteria' ? '/b2b' : '/cliente/home')}>
         <div style={{ width: 28, height: 28, borderRadius: 7, background: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11, fontFamily: T.display }}>JB</div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, fontFamily: T.display, lineHeight: 1.2 }}>JBT DIBO S.A.C</div>
@@ -46,10 +52,7 @@ function ClientTopNav({ themeKey, setThemeKey }) {
       </div>
 
       <div style={{ display: 'flex', gap: 4 }}>
-        {[
-          { path: '/cliente/home', label: 'Tienda', icon: '🏠', active: isClient },
-          { path: '/b2b', label: 'Ferretería B2B', icon: '🏪', active: isB2B },
-        ].map((s) => (
+        {navItems.map((s) => (
           <button key={s.path} onClick={() => navigate(s.path)} style={{
             padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
             fontSize: 13, fontWeight: 600, fontFamily: T.body,
@@ -139,6 +142,9 @@ function AppContent() {
         <Route path="/" element={<LandingScreen/>}/>
         <Route path="/login" element={<LoginScreen initialMode="login"/>}/>
         <Route path="/register" element={<LoginScreen initialMode="register"/>}/>
+        {/* Si intentan ir a /admin sin sesión → llevar a login, no a landing */}
+        <Route path="/admin/*" element={<Navigate to="/login" replace/>}/>
+        <Route path="/admin" element={<Navigate to="/login" replace/>}/>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>
     );

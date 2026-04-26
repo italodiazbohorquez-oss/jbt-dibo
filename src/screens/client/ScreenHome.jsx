@@ -9,6 +9,7 @@ export function ScreenHome({ theme: T }) {
   const navigate = useNavigate();
   const { agregar, totalItems, total } = useCart();
   const [productos, setProductos] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const [filtro, setFiltro] = useState('Todos');
   const [agregado, setAgregado] = useState(null);
   const [busqueda, setBusqueda] = useState('');
@@ -20,7 +21,12 @@ export function ScreenHome({ theme: T }) {
     setTimeout(() => setAgregado(null), 1200);
   }
 
-  useEffect(() => { getProductos().then(({ data }) => setProductos(data)); }, []);
+  useEffect(() => {
+    getProductos().then(({ data }) => {
+      setProductos(data || []);
+      setCargando(false);
+    });
+  }, []);
 
   const categorias = ['Todos', 'Agregados', 'Cementos', 'Ladrillos', 'Fierros'];
   const tipoMap = { Agregados: ['arena','piedra','hormigon'], Cementos: ['cemento'], Ladrillos: ['ladrillo'], Fierros: ['fierro'] };
@@ -96,9 +102,24 @@ export function ScreenHome({ theme: T }) {
           </div>
         </div>
 
-        {productosFiltrados.length === 0 && !productos.length ? (
+        {cargando ? (
           <div style={{ textAlign: 'center', padding: '80px 0', color: T.ink3 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>Cargando productos...</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Cargando catálogo...</div>
+          </div>
+        ) : productosFiltrados.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', background: T.surface, borderRadius: 20, border: `1px dashed ${T.line}`, marginBottom: 40 }}>
+            <div style={{ fontSize: 40 }}>🏗️</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: T.ink, marginTop: 12, fontFamily: T.display }}>
+              {busqueda ? `Sin resultados para "${busqueda}"` : 'Catálogo sin productos aún'}
+            </div>
+            <div style={{ fontSize: 14, color: T.ink3, marginTop: 6 }}>
+              {busqueda ? 'Prueba con otro término de búsqueda' : 'Los productos aparecerán aquí una vez se agreguen en el panel de administración'}
+            </div>
+            {busqueda && (
+              <button onClick={() => setBusqueda('')} style={{ marginTop: 16, padding: '10px 24px', background: T.primary, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontFamily: T.body }}>
+                Ver todos los productos
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 80 }}>
@@ -108,7 +129,7 @@ export function ScreenHome({ theme: T }) {
                 onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                 <div onClick={() => navigate('/cliente/detalle', { state: { producto: p } })}
                   style={{ padding: '24px 20px 16px', display: 'flex', justifyContent: 'center', background: T.bg, position: 'relative', cursor: 'pointer' }}>
-                  {p.stock_actual <= p.stock_minimo && (
+                  {p.stock_actual != null && p.stock_minimo != null && p.stock_actual <= p.stock_minimo && (
                     <div style={{ position: 'absolute', top: 10, left: 10, background: '#E5B100', color: '#fff', fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 6 }}>BAJO STOCK</div>
                   )}
                   <ProductIcon kind={p.tipo} size={88} theme={T}/>
@@ -120,7 +141,7 @@ export function ScreenHome({ theme: T }) {
                   <div style={{ fontSize: 12, color: T.ink3, marginBottom: 14 }}>{p.descripcion?.slice(0, 55)}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: T.ink, fontFamily: T.display }}>{fmt(p.precio)}</div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: T.ink, fontFamily: T.display }}>{fmt(p.precio_unitario ?? p.precio ?? 0)}</div>
                       <div style={{ fontSize: 11, color: T.ink3 }}>por {p.unidad}</div>
                     </div>
                     <button onClick={(e) => handleAgregar(e, p)}
