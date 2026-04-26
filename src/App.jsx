@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { LoginScreen } from './screens/auth/LoginScreen';
+import { LandingScreen } from './screens/auth/LandingScreen';
 import { TOKENS } from './tokens';
 import { Phone } from './components/UI';
 import { ScreenHome } from './screens/client/ScreenHome';
@@ -151,23 +152,34 @@ function TopNav({ theme: T, themeKey, setThemeKey }) {
 
 function AppContent() {
   const [themeKey, setThemeKey] = useState('cantera');
+  const [authView, setAuthView] = useState('landing'); // 'landing' | 'login' | 'register'
   const T = TOKENS[themeKey];
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0eee9', fontFamily: T.body }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1410', fontFamily: T.body }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: T.accent, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-          <span style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>JB</span>
+        <div style={{ width: 52, height: 52, borderRadius: 13, background: T.accent, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+          <span style={{ color: '#fff', fontWeight: 900, fontSize: 20 }}>JB</span>
         </div>
-        <div style={{ fontSize: 14, color: T.ink3 }}>Cargando...</div>
+        <div style={{ fontSize: 14, color: 'rgba(255,255,255,.5)' }}>Cargando...</div>
       </div>
     </div>
   );
 
-  if (!user) return <LoginScreen/>;
+  if (!user) {
+    if (authView === 'landing') {
+      return (
+        <LandingScreen
+          onLogin={() => setAuthView('login')}
+          onRegister={() => setAuthView('register')}
+        />
+      );
+    }
+    return <LoginScreen onBack={() => setAuthView('landing')} initialMode={authView}/>;
+  }
 
   return (
     <div style={{

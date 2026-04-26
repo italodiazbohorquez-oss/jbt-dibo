@@ -137,7 +137,22 @@ export function ScreenCheckout({ theme: T }) {
           })}
         </div>
 
-        <div style={{ background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, padding: 12, marginTop: 16 }}>
+        <div style={{ background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, padding: 12, marginTop: 16, overflow: 'hidden' }}>
+          {/* Encabezado comprobante */}
+          <div style={{ background: T.primarySoft, borderRadius: 10, padding: '10px 12px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ color: '#fff', fontWeight: 900, fontSize: 11, fontFamily: T.display }}>JB</span>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: T.primary, fontFamily: T.display }}>JBT DIBO S.A.C</div>
+              <div style={{ fontSize: 10, color: T.ink3, fontFamily: T.mono }}>RUC: 20615017770</div>
+            </div>
+            <div style={{ marginLeft: 'auto', fontSize: 10, color: T.ink3, textAlign: 'right' }}>
+              <div style={{ fontWeight: 700 }}>Boleta de venta</div>
+              <div>{new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13, color: T.ink2 }}>
             <span>Subtotal</span>
             <span style={{ fontWeight: 700, color: T.ink }}>{fmt(total)}</span>
