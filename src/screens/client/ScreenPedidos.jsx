@@ -160,35 +160,26 @@ export function ScreenPedidos({ theme: T }) {
 
     function fetchPedidos() {
       return getPedidosByCliente(user.id).then(({ data, error }) => {
-        if (error) console.error('Error cargando pedidos cliente:', error);
-        else setPedidos(data || []);
+        if (!error) setPedidos(data || []);
         setLoading(false);
       });
     }
 
     fetchPedidos();
 
-    // Polling fallback cada 15s por si el websocket falla
-    const interval = setInterval(fetchPedidos, 15000);
+    // Polling cada 8s como respaldo garantizado
+    const interval = setInterval(fetchPedidos, 8000);
 
-    // Realtime sin filtro (más confiable que filtrar en servidor)
+    // Broadcast: instantáneo cuando el WebSocket funciona
     const channel = supabase
-      .channel('mis-pedidos-' + user.id)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'pedidos',
-      }, (payload) => {
-        if (payload.new?.cliente_id !== user.id) return;
-        if (payload.eventType === 'UPDATE') {
-          setPedidos(prev => prev.map(p =>
-            p.id === payload.new.id
-              ? { ...p, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
-              : p
-          ));
-        } else if (payload.eventType === 'INSERT') {
-          fetchPedidos();
-        }
+      .channel('jbt-live-client-' + user.id)
+      .on('broadcast', { event: 'order:updated' }, ({ payload }) => {
+        if (payload.cliente_id !== user.id) return;
+        setPedidos(prev => prev.map(p =>
+          p.id === payload.id
+            ? { ...p, estado: payload.estado, motivo_cancelacion: payload.motivo_cancelacion ?? p.motivo_cancelacion }
+            : p
+        ));
       })
       .subscribe();
 

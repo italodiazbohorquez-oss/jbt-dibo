@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { I } from '../../components/Icons';
 import { BtnPrimary, BtnSecondary, Badge } from '../../components/UI';
@@ -197,38 +197,32 @@ export function AdminPedidos({ theme: T }) {
   const [motivoAdmin, setMotivoAdmin] = useState('');
   const [cancelando, setCancelando] = useState(false);
   const [newOrderToast, setNewOrderToast] = useState(null);
+  const knownIdsRef = useRef(null); // null = primera carga aún no hecha
 
   useEffect(() => {
     load();
     getChoferes().then(({ data }) => setChoferes(data || []));
 
-    // Polling de respaldo cada 20s
-    const interval = setInterval(silentLoad, 20000);
+    // Polling cada 8s — respaldo garantizado
+    const interval = setInterval(silentLoadWithCheck, 8000);
 
+    // Broadcast: instantáneo cuando el WebSocket funciona
     const channel = supabase
-      .channel('admin-pedidos')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'pedidos',
-      }, (payload) => {
+      .channel('jbt-live-admin')
+      .on('broadcast', { event: 'order:new' }, ({ payload }) => {
         playNotifSound();
-        setNewOrderToast(payload.new);
+        setNewOrderToast(payload);
         setTimeout(() => setNewOrderToast(null), 6000);
         silentLoad();
       })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'pedidos',
-      }, (payload) => {
+      .on('broadcast', { event: 'order:updated' }, ({ payload }) => {
         setPedidos(prev => prev.map(p =>
-          p.id === payload.new.id
-            ? { ...p, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
+          p.id === payload.id
+            ? { ...p, estado: payload.estado, motivo_cancelacion: payload.motivo_cancelacion ?? p.motivo_cancelacion }
             : p
         ));
-        setSelected(prev => prev?.id === payload.new.id
-          ? { ...prev, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
+        setSelected(prev => prev?.id === payload.id
+          ? { ...prev, estado: payload.estado }
           : prev
         );
       })
@@ -244,14 +238,32 @@ export function AdminPedidos({ theme: T }) {
     setLoading(true);
     const { data, error } = await getPedidos({ limite: 50 });
     if (error) console.error('Error cargando pedidos:', error);
-    setPedidos(data);
+    if (data) {
+      setPedidos(data);
+      knownIdsRef.current = new Set(data.map(p => p.id));
+    }
     setLoading(false);
   }
 
   async function silentLoad() {
-    const { data, error } = await getPedidos({ limite: 50 });
-    if (error) console.error('Error cargando pedidos:', error);
-    else setPedidos(data);
+    const { data } = await getPedidos({ limite: 50 });
+    if (data) setPedidos(data);
+  }
+
+  async function silentLoadWithCheck() {
+    const { data } = await getPedidos({ limite: 50 });
+    if (!data) return;
+    // Detectar pedidos nuevos que no estaban en la lista anterior
+    if (knownIdsRef.current) {
+      const nuevos = data.filter(p => !knownIdsRef.current.has(p.id));
+      if (nuevos.length > 0) {
+        playNotifSound();
+        setNewOrderToast(nuevos[0]);
+        setTimeout(() => setNewOrderToast(null), 6000);
+      }
+    }
+    knownIdsRef.current = new Set(data.map(p => p.id));
+    setPedidos(data);
   }
 
   async function avanzarEstado(pedido) {
