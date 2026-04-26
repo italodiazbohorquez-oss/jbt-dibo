@@ -4,7 +4,7 @@ import { I } from '../../components/Icons';
 import { BtnPrimary, BtnSecondary, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { AdminSidebar } from './AdminSidebar';
-import { getPedidos, actualizarEstadoPedido, crearPedido, getProductos, getChoferes, asignarChoferAPedido } from '../../lib/api';
+import { getPedidos, actualizarEstadoPedido, crearPedido, getProductos, getChoferes, asignarChoferAPedido, cancelarPedido } from '../../lib/api';
 
 const ESTADO_BADGE  = { pendiente: 'neutral', confirmado: 'primary', cargando: 'warn', en_ruta: 'accent', entregado: 'ok', cancelado: 'danger' };
 const ESTADO_LABEL  = { pendiente: 'Pendiente', confirmado: 'Confirmado', cargando: 'Cargando', en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado' };
@@ -174,6 +174,9 @@ export function AdminPedidos({ theme: T }) {
   const [waPending, setWaPending] = useState(null);
   const [choferes, setChoferes] = useState([]);
   const [asignando, setAsignando] = useState(false);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [motivoAdmin, setMotivoAdmin] = useState('');
+  const [cancelando, setCancelando] = useState(false);
 
   useEffect(() => {
     load();
@@ -397,9 +400,22 @@ export function AdminPedidos({ theme: T }) {
 
               {NEXT_ESTADO[selected.estado] && (
                 <button onClick={() => avanzarEstado(selected)} disabled={updating === selected.id}
-                  style={{ width: '100%', padding: '12px 0', background: T.accent, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: updating === selected.id ? .6 : 1 }}>
+                  style={{ width: '100%', padding: '12px 0', background: T.accent, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: updating === selected.id ? .6 : 1, marginBottom: 8 }}>
                   {updating === selected.id ? 'Actualizando...' : `→ ${NEXT_LABEL[selected.estado]}`}
                 </button>
+              )}
+
+              {!['cancelado','entregado'].includes(selected.estado) && (
+                <button onClick={() => { setCancelModal(true); setMotivoAdmin(''); }}
+                  style={{ width: '100%', padding: '10px 0', background: '#fff', color: T.danger, border: `1.5px solid ${T.danger}`, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  Cancelar pedido
+                </button>
+              )}
+
+              {selected.motivo_cancelacion && (
+                <div style={{ marginTop: 8, background: '#FEF2F2', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#991B1B' }}>
+                  Motivo cancelación: {selected.motivo_cancelacion}
+                </div>
               )}
 
               {waPending && waPending.numero === selected.numero && (
@@ -431,6 +447,42 @@ export function AdminPedidos({ theme: T }) {
 
       {modalNuevo && (
         <NuevoPedidoModal T={T} onSave={() => { setModalNuevo(false); load(); }} onClose={() => setModalNuevo(false)}/>
+      )}
+
+      {cancelModal && selected && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 420, fontFamily: T.body }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, marginBottom: 6 }}>Cancelar {selected.numero}</div>
+            <div style={{ fontSize: 13, color: T.ink3, marginBottom: 16 }}>Indica el motivo de cancelación (se registrará en el pedido).</div>
+            <textarea
+              value={motivoAdmin}
+              onChange={e => setMotivoAdmin(e.target.value)}
+              placeholder="Ej: Producto sin stock, cliente solicitó cancelación, error en dirección..."
+              rows={3}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${T.line}`, fontSize: 13, resize: 'vertical', fontFamily: T.body, outline: 'none', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setCancelModal(false)}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `1.5px solid ${T.line}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', color: T.ink3, fontFamily: T.body }}>
+                Volver
+              </button>
+              <button disabled={cancelando || !motivoAdmin.trim()} onClick={async () => {
+                setCancelando(true);
+                const { data } = await cancelarPedido(selected.id, motivoAdmin.trim());
+                if (data) {
+                  const updated = { ...selected, estado: 'cancelado', motivo_cancelacion: motivoAdmin.trim() };
+                  setPedidos(prev => prev.map(p => p.id === selected.id ? updated : p));
+                  setSelected(updated);
+                }
+                setCancelando(false);
+                setCancelModal(false);
+              }}
+                style={{ flex: 2, padding: '12px 0', borderRadius: 12, border: 'none', background: cancelando || !motivoAdmin.trim() ? T.ink3 : T.danger, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: T.body }}>
+                {cancelando ? 'Cancelando...' : 'Confirmar cancelación'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

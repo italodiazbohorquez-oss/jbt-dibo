@@ -23,7 +23,7 @@ export async function getPedidos({ limite = 20 } = {}) {
 export async function getPedidosByCliente(clienteId) {
   const { data, error } = await supabase
     .from('pedidos')
-    .select(`*, pedido_items(*, productos(nombre, tipo, unidad)), choferes(nombre, placa, telefono)`)
+    .select(`*, pedido_items(*, productos(nombre, tipo, unidad))`)
     .eq('cliente_id', clienteId)
     .order('created_at', { ascending: false });
   return { data: data ?? [], error };
@@ -148,10 +148,10 @@ export async function actualizarProducto(id, data) {
   return { data: prod, error };
 }
 
-export async function cancelarPedido(pedidoId) {
+export async function cancelarPedido(pedidoId, motivo = '') {
   const { data, error } = await supabase
     .from('pedidos')
-    .update({ estado: 'cancelado' })
+    .update({ estado: 'cancelado', motivo_cancelacion: motivo })
     .eq('id', pedidoId)
     .select()
     .single();
