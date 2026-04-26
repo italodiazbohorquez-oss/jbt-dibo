@@ -3,20 +3,22 @@ import { I } from '../../components/Icons';
 import { BtnPrimary, BtnSecondary, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { AdminSidebar } from './AdminSidebar';
-import { getStock, actualizarStock, crearProducto, actualizarProducto } from '../../lib/api';
+import { getStock, actualizarStock, crearProducto, actualizarProducto, eliminarProducto } from '../../lib/api';
 
 const TIPOS = ['arena', 'piedra', 'hormigon', 'cemento', 'ladrillo', 'fierro'];
 const CATEGORIAS = { arena: 'Agregados', piedra: 'Agregados', hormigon: 'Agregados', cemento: 'Cementos', ladrillo: 'Ladrillos', fierro: 'Fierros' };
 
-const EMPTY_FORM = { nombre: '', tipo: 'arena', descripcion: '', precio: '', costo: '', unidad: 'm³', stock_actual: '', stock_minimo: '', sku: '' };
+const EMPTY_FORM = { nombre: '', tipo: 'arena', descripcion: '', precio: '', costo: '', unidad: 'm³', stock_actual: '', stock_minimo: '', sku: '', imagen_url: '' };
 
 function inputStyle(T) {
   return { width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, outline: 'none', boxSizing: 'border-box', background: '#fff' };
 }
 
 function ProductModal({ T, initial, onSave, onClose }) {
-  const [form, setForm] = useState(initial || EMPTY_FORM);
+  const [form, setForm] = useState(initial ? { ...EMPTY_FORM, ...initial, imagen_url: initial.imagen_url || '' } : EMPTY_FORM);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
   const [error, setError] = useState('');
   const isEdit = !!initial?.id;
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -31,6 +33,7 @@ function ProductModal({ T, initial, onSave, onClose }) {
       costo: form.costo !== '' ? Number(form.costo) : null,
       unidad: form.unidad, stock_actual: Number(form.stock_actual),
       stock_minimo: Number(form.stock_minimo) || 10, sku: form.sku || null,
+      imagen_url: form.imagen_url || null,
     };
     const { error: err } = isEdit
       ? await actualizarProducto(initial.id, payload)
@@ -39,6 +42,18 @@ function ProductModal({ T, initial, onSave, onClose }) {
     if (err) { setError(err.message); return; }
     onSave();
   }
+
+  async function handleDelete() {
+    if (!confirmDel) { setConfirmDel(true); return; }
+    setDeleting(true);
+    await eliminarProducto(initial.id);
+    setDeleting(false);
+    onSave();
+  }
+
+  const lbl = (text) => (
+    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>{text}</label>
+  );
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -49,28 +64,51 @@ function ProductModal({ T, initial, onSave, onClose }) {
         </div>
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+            {/* Imagen */}
             <div style={{ gridColumn: '1/-1' }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Nombre *</label>
+              {lbl('Imagen del producto')}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 10, overflow: 'hidden', border: `1.5px solid ${T.line}`, flexShrink: 0, background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {form.imagen_url
+                    ? <img src={form.imagen_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'}/>
+                    : <ProductIcon kind={form.tipo} size={48} theme={T}/>
+                  }
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    style={inputStyle(T)} value={form.imagen_url} onChange={set('imagen_url')}
+                    placeholder="https://... (pega un enlace de imagen)"
+                  />
+                  <div style={{ fontSize: 10, color: T.ink3, marginTop: 4 }}>
+                    Puedes usar enlaces de Google Drive, Dropbox, o cualquier URL pública de imagen (.jpg, .png, .webp)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ gridColumn: '1/-1' }}>
+              {lbl('Nombre *')}
               <input style={inputStyle(T)} value={form.nombre} onChange={set('nombre')} placeholder="Ej: Arena gruesa lavada" required/>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Tipo *</label>
+              {lbl('Tipo *')}
               <select style={inputStyle(T)} value={form.tipo} onChange={set('tipo')}>
                 {TIPOS.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Unidad</label>
+              {lbl('Unidad')}
               <select style={inputStyle(T)} value={form.unidad} onChange={set('unidad')}>
                 {['m³', 'bolsa', 'und', 'varilla', 'kg', 'm²', 'tonelada'].map(u => <option key={u}>{u}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Precio venta (S/) *</label>
+              {lbl('Precio venta (S/) *')}
               <input style={inputStyle(T)} type="number" step="0.01" value={form.precio} onChange={set('precio')} placeholder="75.00"/>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Costo (S/)</label>
+              {lbl('Costo (S/)')}
               <input style={inputStyle(T)} type="number" step="0.01" value={form.costo} onChange={set('costo')} placeholder="52.00"/>
             </div>
             {form.precio && form.costo && Number(form.costo) > 0 && (
@@ -87,29 +125,53 @@ function ProductModal({ T, initial, onSave, onClose }) {
               </div>
             )}
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Stock actual *</label>
+              {lbl('Stock actual *')}
               <input style={inputStyle(T)} type="number" value={form.stock_actual} onChange={set('stock_actual')} placeholder="100"/>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Stock mínimo</label>
+              {lbl('Stock mínimo')}
               <input style={inputStyle(T)} type="number" value={form.stock_minimo} onChange={set('stock_minimo')} placeholder="20"/>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>SKU / Código</label>
+              {lbl('SKU / Código')}
               <input style={inputStyle(T)} value={form.sku} onChange={set('sku')} placeholder="AGR-001"/>
             </div>
             <div style={{ gridColumn: '1/-1' }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Descripción</label>
+              {lbl('Descripción')}
               <input style={inputStyle(T)} value={form.descripcion} onChange={set('descripcion')} placeholder="Origen, granulometría, etc."/>
             </div>
           </div>
+
           {error && <div style={{ background: '#FCE7E2', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#C0392B', fontWeight: 600 }}>{error}</div>}
+
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: 10, border: `1.5px solid ${T.line}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', color: T.ink3 }}>Cancelar</button>
             <button type="submit" disabled={loading} style={{ flex: 2, padding: '12px', borderRadius: 10, border: 'none', background: loading ? T.ink3 : T.accent, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: T.body }}>
               {loading ? 'Guardando...' : (isEdit ? 'Guardar cambios' : 'Crear producto')}
             </button>
           </div>
+
+          {isEdit && (
+            <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14 }}>
+              {confirmDel ? (
+                <div style={{ background: '#FCE7E2', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#C0392B', marginBottom: 10 }}>
+                    ¿Eliminar "{initial.nombre}"? Esta acción lo quitará de la tienda.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" onClick={() => setConfirmDel(false)} style={{ flex: 1, padding: '10px', borderRadius: 9, border: `1.5px solid ${T.line}`, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: T.ink3 }}>Cancelar</button>
+                    <button type="button" onClick={handleDelete} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', background: '#C0392B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                      {deleting ? 'Eliminando...' : '🗑 Sí, eliminar'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={handleDelete} style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1.5px solid #E74C3C`, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#E74C3C' }}>
+                  🗑 Eliminar producto
+                </button>
+              )}
+            </div>
+          )}
         </form>
       </div>
     </div>
@@ -202,7 +264,7 @@ export function AdminInventory({ theme: T }) {
                 return (
                   <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1.3fr 1fr 1fr .5fr', padding: '14px 18px', borderTop: i > 0 ? `1px solid ${T.line2 || T.line}` : 'none', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <ProductIcon kind={p.tipo} size={40} theme={T}/>
+                      <ProductIcon kind={p.tipo} size={40} theme={T} imagenUrl={p.imagen_url}/>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{p.nombre}</div>
                         <div style={{ fontSize: 11, color: T.ink3 }}>{p.descripcion?.slice(0, 40) || CATEGORIAS[p.tipo]}</div>

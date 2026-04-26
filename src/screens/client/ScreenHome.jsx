@@ -134,7 +134,7 @@ export function ScreenHome({ theme: T }) {
                   {p.stock_actual != null && p.stock_minimo != null && p.stock_actual <= p.stock_minimo && (
                     <div style={{ position: 'absolute', top: 8, left: 8, background: '#E5B100', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 5 }}>BAJO STOCK</div>
                   )}
-                  <ProductIcon kind={p.tipo} size={isMobile ? 60 : 88} theme={T}/>
+                  <ProductIcon kind={p.tipo} size={isMobile ? 60 : 88} theme={T} imagenUrl={p.imagen_url}/>
                 </div>
                 <div style={{ padding: isMobile ? '10px 12px 14px' : '14px 18px 18px' }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: T.accent, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>{p.tipo}</div>

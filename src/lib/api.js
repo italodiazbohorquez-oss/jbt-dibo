@@ -143,6 +143,16 @@ export async function actualizarProducto(id, data) {
   return { data: prod, error };
 }
 
+export async function eliminarProducto(id) {
+  const { data, error } = await supabase
+    .from('productos')
+    .update({ activo: false })
+    .eq('id', id)
+    .select()
+    .single();
+  return { data, error };
+}
+
 // ── Choferes ───────────────────────────────────────────────
 export async function asignarChoferAPedido(pedidoId, choferId) {
   const { data, error } = await supabase

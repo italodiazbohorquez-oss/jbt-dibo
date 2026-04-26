@@ -1,6 +1,14 @@
-export function ProductIcon({ kind, size = 72, theme: T }) {
+export function ProductIcon({ kind, size = 72, theme: T, imagenUrl }) {
   const s = size;
   const r = s * 0.18;
+
+  if (imagenUrl) {
+    return (
+      <div style={{ width: s, height: s, borderRadius: Math.round(r), overflow: 'hidden', flexShrink: 0, background: '#f0f0f0' }}>
+        <img src={imagenUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }}/>
+      </div>
+    );
+  }
 
   if (kind === 'arena') return (
     <svg width={s} height={s} viewBox="0 0 72 72">
