@@ -4,6 +4,7 @@ import { Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { getPedidosByCliente, cancelarPedido } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const ESTADO_BADGE = {
   pendiente: 'neutral', confirmado: 'primary', cargando: 'warn',
@@ -161,6 +162,24 @@ export function ScreenPedidos({ theme: T }) {
       setPedidos(data || []);
       setLoading(false);
     });
+
+    const channel = supabase
+      .channel('mis-pedidos-' + user.id)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'pedidos',
+        filter: `cliente_id=eq.${user.id}`,
+      }, (payload) => {
+        setPedidos(prev => prev.map(p =>
+          p.id === payload.new.id
+            ? { ...p, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
+            : p
+        ));
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, [user]);
 
   const filtrados = filtro === 'todos' ? pedidos

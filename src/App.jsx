@@ -5,6 +5,7 @@ import { useCart } from './context/CartContext';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { LandingScreen } from './screens/auth/LandingScreen';
 import { TOKENS } from './tokens';
+import { InstallBanner } from './components/InstallBanner';
 import { ScreenHome } from './screens/client/ScreenHome';
 import { ScreenDetail } from './screens/client/ScreenDetail';
 import { ScreenQuote } from './screens/client/ScreenQuote';
@@ -316,6 +317,7 @@ function ClientLayout() {
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <ClientTopNav/>
+      <InstallBanner theme={T}/>
       <div style={{ marginTop: 52, paddingBottom: isMobile ? 60 : 0 }}>
         <Routes>
           <Route path="/" element={<SmartRedirect/>}/>

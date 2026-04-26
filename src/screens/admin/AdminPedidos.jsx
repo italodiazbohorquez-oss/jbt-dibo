@@ -5,6 +5,7 @@ import { BtnPrimary, BtnSecondary, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { AdminSidebar } from './AdminSidebar';
 import { getPedidos, actualizarEstadoPedido, crearPedido, getProductos, getChoferes, asignarChoferAPedido, cancelarPedido } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
 
 const ESTADO_BADGE  = { pendiente: 'neutral', confirmado: 'primary', cargando: 'warn', en_ruta: 'accent', entregado: 'ok', cancelado: 'danger' };
 const ESTADO_LABEL  = { pendiente: 'Pendiente', confirmado: 'Confirmado', cargando: 'Cargando', en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado' };
@@ -181,6 +182,34 @@ export function AdminPedidos({ theme: T }) {
   useEffect(() => {
     load();
     getChoferes().then(({ data }) => setChoferes(data || []));
+
+    const channel = supabase
+      .channel('admin-pedidos')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'pedidos',
+      }, () => {
+        load();
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'pedidos',
+      }, (payload) => {
+        setPedidos(prev => prev.map(p =>
+          p.id === payload.new.id
+            ? { ...p, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
+            : p
+        ));
+        setSelected(prev => prev?.id === payload.new.id
+          ? { ...prev, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
+          : prev
+        );
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, []);
 
   async function load() {
