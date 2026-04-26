@@ -292,7 +292,7 @@ export function LoginScreen({ initialMode = 'login' }) {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,.35)' }}>
-          JBT DIBO S.A.C · RUC 20615017770 · Lima Sur, Perú
+          JBT DIBO S.A.C · RUC 20615017770 · Lima, Perú
         </div>
       </div>
     </div>

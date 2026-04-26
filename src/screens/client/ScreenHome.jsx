@@ -35,7 +35,7 @@ export function ScreenHome({ theme: T }) {
     <div style={{ background: T.bg, minHeight: '100vh', fontFamily: T.body }}>
       <div style={{ background: T.primary, padding: '20px 0 32px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', marginBottom: 10 }}>Materiales de construcción · Lima Sur</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', marginBottom: 10 }}>Materiales de construcción · Lima</div>
           <div style={{ background: '#fff', borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10, maxWidth: 600, boxShadow: '0 4px 20px rgba(0,0,0,.15)' }}>
             <I.search size={18} color={T.ink3}/>
             <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
@@ -54,7 +54,7 @@ export function ScreenHome({ theme: T }) {
           <div style={{ position: 'relative' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,.85)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>Oferta especial</div>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', fontFamily: T.display, marginTop: 2 }}>Envío gratis en pedidos +S/500</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)', marginTop: 3 }}>Zona Lima Sur · Entrega el mismo día</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)', marginTop: 3 }}>Zona Lima · Entrega el mismo día</div>
           </div>
         </div>
 

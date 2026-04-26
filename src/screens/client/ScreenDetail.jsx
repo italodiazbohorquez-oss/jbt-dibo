@@ -100,7 +100,7 @@ export function ScreenDetail({ theme: T }) {
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: T.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>🚛</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Despacho en 24-48h</div>
-                  <div style={{ fontSize: 11, color: T.ink3 }}>Lima Sur · Envío gratis +S/500</div>
+                  <div style={{ fontSize: 11, color: T.ink3 }}>Lima · Envío gratis +S/500</div>
                 </div>
               </div>
               <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${T.line}`, padding: 16, display: 'flex', gap: 12 }}>

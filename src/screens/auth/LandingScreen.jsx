@@ -17,7 +17,7 @@ const PRODUCTOS = [
 ];
 
 const BENEFICIOS = [
-  { icon: '🚚', titulo: 'Entrega el mismo día', desc: 'Volquetes propios disponibles en Lima Sur. Sin esperas ni excusas.' },
+  { icon: '🚚', titulo: 'Entrega el mismo día', desc: 'Volquetes propios disponibles en Lima. Sin esperas ni excusas.' },
   { icon: '📍', titulo: 'Directo a tu obra', desc: 'Descargamos exactamente donde necesitas. Coordinamos con tu maestro.' },
   { icon: '💰', titulo: 'Precio de cantera', desc: 'Sin intermediarios. Compra directo al distribuidor con precios justos.' },
 ];
@@ -87,7 +87,7 @@ export function LandingScreen() {
         <div style={{ maxWidth: 760, width: '100%', textAlign: 'center', position: 'relative' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(242,107,29,.15)', border: '1px solid rgba(242,107,29,.3)', borderRadius: 100, padding: '6px 14px', marginBottom: 24 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT }}/>
-            <span style={{ fontSize: 12, color: '#F2A06D', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>Materiales de construcción · Lima Sur</span>
+            <span style={{ fontSize: 12, color: '#F2A06D', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>Materiales de construcción · Lima</span>
           </div>
 
           <h1 style={{ fontSize: 'clamp(42px, 7vw, 76px)', fontWeight: 900, color: '#fff', fontFamily: DISPLAY, lineHeight: 1.05, letterSpacing: '-.03em', margin: '0 0 16px' }}>
@@ -95,7 +95,7 @@ export function LandingScreen() {
           </h1>
 
           <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'rgba(255,255,255,.7)', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.6 }}>
-            Arena, piedra, cemento y más — directo de cantera a tu obra. Entrega el mismo día en Lima Sur, sin excusas.
+            Arena, piedra, cemento y más — directo de cantera a tu obra. Entrega el mismo día en Lima, sin excusas.
           </p>
 
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -263,7 +263,7 @@ export function LandingScreen() {
               <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', fontFamily: DISPLAY }}>JBT DIBO S.A.C</span>
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>RUC: 20615017770</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>Lima Sur, Perú · Materiales de construcción</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>Lima, Perú · Materiales de construcción</div>
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
             © 2025 JBT DIBO S.A.C. Todos los derechos reservados.
