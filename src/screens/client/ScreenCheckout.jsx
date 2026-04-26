@@ -1,36 +1,114 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BtnPrimary } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { crearPedido } from '../../lib/api';
 
+// ── Logos de pago ───────────────────────────────────────────
+function LogoYape() {
+  return (
+    <div style={{ width: 36, height: 36, borderRadius: 9, background: 'linear-gradient(135deg,#6B2FA5,#9B4DCA)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3L4 8.5V15.5L12 21L20 15.5V8.5L12 3Z" fill="white" fillOpacity="0.3"/>
+        <path d="M9 8L12 13L15 8" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <line x1="12" y1="13" x2="12" y2="17" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+      </svg>
+    </div>
+  );
+}
+function LogoBCP() {
+  return (
+    <div style={{ width: 36, height: 36, borderRadius: 9, background: '#E8521A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <span style={{ color: '#fff', fontWeight: 900, fontSize: 11, fontFamily: 'Arial', letterSpacing: '-.5px' }}>BCP</span>
+    </div>
+  );
+}
+function LogoVisa() {
+  return (
+    <div style={{ width: 36, height: 36, borderRadius: 9, background: '#1A1F71', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, gap: 1 }}>
+      <span style={{ color: '#fff', fontWeight: 900, fontSize: 10, fontFamily: 'Arial', letterSpacing: '-.3px' }}>VISA</span>
+    </div>
+  );
+}
+function LogoCash() {
+  return (
+    <div style={{ width: 36, height: 36, borderRadius: 9, background: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>
+      💵
+    </div>
+  );
+}
+
 const PAY_METHODS = [
-  { id: 'yape',         l: 'Yape',           sub: 'QR · al instante',    logo: 'Y', color: '#6B2FA5' },
-  { id: 'transferencia',l: 'Transferencia',   sub: 'BCP / Interbank',     logo: '$', color: null },
-  { id: 'tarjeta',      l: 'Tarjeta',         sub: 'Visa / Mastercard',   logo: 'C', color: null },
-  { id: 'contraentrega',l: 'Contra entrega',  sub: 'Efectivo al chofer',  logo: '✓', color: null },
+  { id: 'yape',          l: 'Yape',           sub: 'QR · al instante',   Logo: LogoYape  },
+  { id: 'transferencia', l: 'Transferencia',   sub: 'BCP / Interbank',    Logo: LogoBCP   },
+  { id: 'tarjeta',       l: 'Tarjeta',         sub: 'Visa / Mastercard',  Logo: LogoVisa  },
+  { id: 'contraentrega', l: 'Contra entrega',  sub: 'Efectivo al chofer', Logo: LogoCash  },
 ];
+
+const FRANJAS = [
+  { id: 'manana', l: '7:00 – 12:00', icon: '🌅' },
+  { id: 'tarde',  l: '12:00 – 17:00', icon: '☀️' },
+  { id: 'noche',  l: '17:00 – 20:00', icon: '🌆' },
+];
+
+function generarFechas() {
+  const result = [];
+  const d = new Date();
+  while (result.length < 4) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0) result.push(new Date(d)); // sin domingo
+  }
+  return result;
+}
 
 export function ScreenCheckout({ theme: T }) {
   const navigate = useNavigate();
   const { items, total, vaciar, actualizarCantidad, quitar } = useCart();
   const { user, profile } = useAuth();
+
   const [metodo, setMetodo] = useState('yape');
   const [direccion, setDireccion] = useState('');
   const [referencia, setReferencia] = useState('');
+  const [fechaIdx, setFechaIdx] = useState(0);
+  const [franja, setFranja] = useState('manana');
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const fechas = useMemo(generarFechas, []);
   const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
   const totalConDespacho = total >= 500 ? total : total + 50;
+
+  async function detectarUbicacion() {
+    if (!navigator.geolocation) { setGpsError('Tu dispositivo no soporta GPS'); return; }
+    setGpsLoading(true); setGpsError('');
+    try {
+      const pos = await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
+      );
+      const { latitude, longitude } = pos.coords;
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=es`,
+        { headers: { 'Accept-Language': 'es' } }
+      );
+      const geo = await res.json();
+      const a = geo.address || {};
+      const calle = a.road ? (a.house_number ? `${a.road} ${a.house_number}` : a.road) : '';
+      const zona = a.suburb || a.neighbourhood || a.quarter || '';
+      const distrito = a.city_district || a.district || a.town || '';
+      const partes = [calle, zona, distrito].filter(Boolean);
+      setDireccion(partes.join(', ') || geo.display_name?.split(',').slice(0, 2).join(',') || '');
+    } catch (e) {
+      setGpsError(e.code === 1 ? 'Permiso denegado. Activa la ubicación en tu navegador.' : 'No se pudo obtener tu ubicación.');
+    } finally { setGpsLoading(false); }
+  }
 
   async function handleConfirmar() {
     if (!user || items.length === 0) return;
     if (!direccion.trim()) { setError('Ingresa la dirección de entrega para continuar.'); return; }
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
 
     const cartItems = items.map(i => ({
       producto_id: i.producto_id || null,
@@ -40,22 +118,25 @@ export function ScreenCheckout({ theme: T }) {
       subtotal: i.subtotal,
     }));
 
-    const mañana = new Date();
-    mañana.setDate(mañana.getDate() + 1);
-    const direccionCompleta = referencia.trim() ? `${direccion.trim()} · Ref: ${referencia.trim()}` : direccion.trim();
+    const franjaLabel = FRANJAS.find(f => f.id === franja)?.l;
+    const direccionCompleta = [
+      direccion.trim(),
+      referencia.trim() ? `Ref: ${referencia.trim()}` : null,
+      `Horario: ${franjaLabel}`,
+    ].filter(Boolean).join(' · ');
 
-    const { data, error: err } = await crearPedido({
+    const { error: err } = await crearPedido({
       clienteId: user.id,
       items: cartItems,
       direccion: direccionCompleta,
       metodoPago: metodo,
-      fechaEntrega: mañana.toISOString().slice(0, 10),
+      fechaEntrega: fechas[fechaIdx].toISOString().slice(0, 10),
     });
 
     setLoading(false);
     if (err) { setError('Error al registrar el pedido. Intenta de nuevo.'); return; }
     vaciar();
-    navigate('/cliente/pedidos', { state: { nuevoPedido: data } });
+    navigate('/cliente/pedidos');
   }
 
   if (items.length === 0) {
@@ -71,6 +152,8 @@ export function ScreenCheckout({ theme: T }) {
     );
   }
 
+  const fmtFecha = (d) => d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' });
+
   return (
     <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
@@ -83,12 +166,35 @@ export function ScreenCheckout({ theme: T }) {
           {/* Left column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {/* Delivery address — editable */}
+            {/* ── Dirección ─────────────────────────────── */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Dirección de entrega</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>📍 Dirección de entrega</div>
 
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.ink3, marginBottom: 6 }}>
+              {/* GPS button */}
+              <button
+                onClick={detectarUbicacion}
+                disabled={gpsLoading}
+                style={{
+                  width: '100%', padding: '10px 14px', marginBottom: 10,
+                  border: `1.5px dashed ${T.primary}`, borderRadius: 10,
+                  background: T.primarySoft, cursor: gpsLoading ? 'wait' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  fontSize: 13, fontWeight: 700, color: T.primary, fontFamily: T.body,
+                }}
+              >
+                <span>{gpsLoading ? '📡' : '🎯'}</span>
+                {gpsLoading ? 'Detectando ubicación...' : 'Usar mi ubicación actual (GPS)'}
+              </button>
+              {gpsError && <div style={{ fontSize: 12, color: T.danger, marginBottom: 8, fontWeight: 600 }}>{gpsError}</div>}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ flex: 1, height: 1, background: T.line }}/>
+                <span style={{ fontSize: 11, color: T.ink3, fontWeight: 600 }}>O escribe la dirección</span>
+                <div style={{ flex: 1, height: 1, background: T.line }}/>
+              </div>
+
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.ink3, marginBottom: 5 }}>
                   Dirección completa <span style={{ color: T.danger }}>*</span>
                 </label>
                 <input
@@ -99,43 +205,68 @@ export function ScreenCheckout({ theme: T }) {
                   style={{
                     width: '100%', padding: '11px 14px', borderRadius: 10,
                     border: `1.5px solid ${!direccion && error ? T.danger : T.line}`,
-                    fontSize: 14, fontFamily: T.body, color: T.ink, outline: 'none',
-                    boxSizing: 'border-box', background: '#FAFAFA',
+                    fontSize: 14, fontFamily: T.body, color: T.ink, outline: 'none', boxSizing: 'border-box',
                   }}
                 />
               </div>
 
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.ink3, marginBottom: 6 }}>Referencia (opcional)</label>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.ink3, marginBottom: 5 }}>Referencia (opcional)</label>
                 <input
                   type="text"
                   value={referencia}
                   onChange={e => setReferencia(e.target.value)}
                   placeholder="Ej: Portón azul, frente a la bodega"
-                  style={{
-                    width: '100%', padding: '11px 14px', borderRadius: 10,
-                    border: `1.5px solid ${T.line}`,
-                    fontSize: 14, fontFamily: T.body, color: T.ink, outline: 'none',
-                    boxSizing: 'border-box', background: '#FAFAFA',
-                  }}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${T.line}`, fontSize: 14, fontFamily: T.body, color: T.ink, outline: 'none', boxSizing: 'border-box' }}
                 />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: T.accentSoft, borderRadius: 10 }}>
-                <span style={{ fontSize: 16 }}>📅</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
-                    Entrega mañana · {new Date(Date.now() + 86400000).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </div>
-                  <div style={{ fontSize: 11, color: T.ink3 }}>Ventana: 8:00 AM – 12:00 PM</div>
-                </div>
               </div>
             </div>
 
-            {/* Products */}
+            {/* ── Fecha de entrega ──────────────────────── */}
+            <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>📅 ¿Cuándo deseas recibirlo?</div>
+
+              {/* Días */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
+                {fechas.map((f, i) => (
+                  <button key={i} onClick={() => setFechaIdx(i)} style={{
+                    padding: '10px 6px', borderRadius: 10, border: `2px solid ${fechaIdx === i ? T.primary : T.line}`,
+                    background: fechaIdx === i ? T.primarySoft : '#fff',
+                    cursor: 'pointer', textAlign: 'center', fontFamily: T.body,
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: fechaIdx === i ? T.primary : T.ink3, textTransform: 'capitalize' }}>
+                      {f.toLocaleDateString('es-PE', { weekday: 'short' })}
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: fechaIdx === i ? T.primary : T.ink, fontFamily: T.display }}>
+                      {f.getDate()}
+                    </div>
+                    <div style={{ fontSize: 10, color: fechaIdx === i ? T.primary : T.ink3 }}>
+                      {f.toLocaleDateString('es-PE', { month: 'short' })}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Franjas horarias */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.ink3, marginBottom: 8 }}>Franja horaria</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {FRANJAS.map((f) => (
+                  <button key={f.id} onClick={() => setFranja(f.id)} style={{
+                    padding: '10px 8px', borderRadius: 10, border: `2px solid ${franja === f.id ? T.accent : T.line}`,
+                    background: franja === f.id ? T.accentSoft : '#fff',
+                    cursor: 'pointer', textAlign: 'center', fontFamily: T.body,
+                  }}>
+                    <div style={{ fontSize: 18, marginBottom: 2 }}>{f.icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: franja === f.id ? T.accent : T.ink }}>{f.l}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Productos ────────────────────────────── */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>
-                Tu pedido ({items.length} {items.length === 1 ? 'producto' : 'productos'})
+                🧱 Tu pedido ({items.length} {items.length === 1 ? 'producto' : 'productos'})
               </div>
               {items.map((x, i, arr) => (
                 <div key={x.producto_id ?? x.nombre} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line}` : 'none' }}>
@@ -157,23 +288,22 @@ export function ScreenCheckout({ theme: T }) {
               ))}
             </div>
 
-            {/* Payment method */}
+            {/* ── Método de pago ───────────────────────── */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Método de pago</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>💳 Método de pago</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                {PAY_METHODS.map((m, i) => {
-                  const sel = metodo === m.id;
-                  const bgColor = m.color || [T.primary, T.ink, T.accent, T.ok][i];
+                {PAY_METHODS.map(({ id, l, sub, Logo }) => {
+                  const sel = metodo === id;
                   return (
-                    <div key={m.id} onClick={() => setMetodo(m.id)} style={{
+                    <div key={id} onClick={() => setMetodo(id)} style={{
                       border: `2px solid ${sel ? T.primary : T.line}`, borderRadius: 12, padding: 14,
                       display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
                       background: sel ? T.primarySoft : '#fff', transition: 'all .15s',
                     }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 9, background: bgColor, color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{m.logo}</div>
+                      <Logo/>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: sel ? T.primary : T.ink }}>{m.l}</div>
-                        <div style={{ fontSize: 11, color: T.ink3 }}>{m.sub}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: sel ? T.primary : T.ink }}>{l}</div>
+                        <div style={{ fontSize: 11, color: T.ink3 }}>{sub}</div>
                       </div>
                       {sel && <div style={{ marginLeft: 'auto', width: 18, height: 18, borderRadius: '50%', background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11 }}>✓</div>}
                     </div>
@@ -181,27 +311,27 @@ export function ScreenCheckout({ theme: T }) {
                 })}
               </div>
 
-              {/* Payment instructions */}
               {metodo === 'yape' && (
-                <div style={{ marginTop: 14, padding: '12px 14px', background: '#F5EDFF', borderRadius: 10, fontSize: 13, color: '#4A1A7A', fontWeight: 600 }}>
-                  📱 Envía el pago al <strong>965 432 100</strong> (JBT DIBO) y adjunta el comprobante por WhatsApp.
+                <div style={{ marginTop: 12, padding: '12px 14px', background: '#F5EDFF', borderRadius: 10, fontSize: 13, color: '#4A1A7A', fontWeight: 600 }}>
+                  📱 Envía el pago al <strong>965 432 100</strong> · Titular: JBT DIBO<br/>
+                  <span style={{ fontWeight: 400 }}>Adjunta el comprobante por WhatsApp al confirmar.</span>
                 </div>
               )}
               {metodo === 'transferencia' && (
-                <div style={{ marginTop: 14, padding: '12px 14px', background: T.primarySoft, borderRadius: 10, fontSize: 13, color: T.primary, fontWeight: 600 }}>
-                  🏦 BCP: <strong>193-2841567-0-88</strong> · CCI: 002-193-002841567088-17<br/>
-                  <span style={{ fontWeight: 400 }}>Titular: JBT DIBO S.A.C.</span>
+                <div style={{ marginTop: 12, padding: '12px 14px', background: '#FFF3ED', borderRadius: 10, fontSize: 13, color: '#7A3910', fontWeight: 600 }}>
+                  🏦 <strong>BCP</strong> · Cta: 193-2841567-0-88<br/>
+                  CCI: 002-193-002841567088-17 · Titular: JBT DIBO S.A.C.
                 </div>
               )}
               {metodo === 'contraentrega' && (
-                <div style={{ marginTop: 14, padding: '12px 14px', background: '#E6F4EA', borderRadius: 10, fontSize: 13, color: '#1A6B3A', fontWeight: 600 }}>
+                <div style={{ marginTop: 12, padding: '12px 14px', background: '#E6F4EA', borderRadius: 10, fontSize: 13, color: '#1A6B3A', fontWeight: 600 }}>
                   ✓ El conductor cobrará al momento de la entrega. Ten el monto exacto listo.
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right column — summary */}
+          {/* Right column — resumen */}
           <div style={{ position: 'sticky', top: 72 }}>
             <div style={{ background: '#fff', borderRadius: 16, border: `1px solid ${T.line}`, overflow: 'hidden' }}>
               <div style={{ background: T.primary, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -219,11 +349,28 @@ export function ScreenCheckout({ theme: T }) {
               </div>
 
               <div style={{ padding: 20 }}>
+                {/* Resumen entrega */}
+                <div style={{ padding: '10px 12px', background: T.bg, borderRadius: 10, marginBottom: 14, fontSize: 12 }}>
+                  {direccion ? (
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+                      <span>📍</span>
+                      <span style={{ color: T.ink, fontWeight: 600 }}>{direccion.slice(0, 45)}{direccion.length > 45 ? '...' : ''}</span>
+                    </div>
+                  ) : (
+                    <div style={{ color: T.danger, fontWeight: 600 }}>⚠️ Falta dirección de entrega</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, color: T.ink3 }}>
+                    <span>📅</span>
+                    <span>{fmtFecha(fechas[fechaIdx])} · {FRANJAS.find(f => f.id === franja)?.l}</span>
+                  </div>
+                </div>
+
                 {profile && (
                   <div style={{ fontSize: 13, color: T.ink3, marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${T.line}` }}>
                     Cliente: <strong style={{ color: T.ink }}>{profile.nombre}</strong>
                   </div>
                 )}
+
                 {items.map(x => (
                   <div key={x.producto_id ?? x.nombre} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: T.ink2, padding: '4px 0' }}>
                     <span style={{ flex: 1, marginRight: 8 }}>{x.nombre} ×{x.cantidad}</span>
@@ -232,19 +379,17 @@ export function ScreenCheckout({ theme: T }) {
                 ))}
                 <div style={{ height: 1, background: T.line, margin: '12px 0' }}/>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.ink2, padding: '4px 0' }}>
-                  <span>Subtotal</span>
-                  <span style={{ fontWeight: 600, color: T.ink }}>{fmt(total)}</span>
+                  <span>Subtotal</span><span style={{ fontWeight: 600, color: T.ink }}>{fmt(total)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.ink2, padding: '4px 0' }}>
                   <span>Despacho</span>
                   <span style={{ fontWeight: 600, color: total >= 500 ? T.ok : T.ink }}>{total >= 500 ? 'Gratis' : fmt(50)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.ink2, padding: '4px 0' }}>
-                  <span>IGV (18%)</span>
-                  <span style={{ fontWeight: 600, color: T.ink }}>Incluido</span>
+                  <span>IGV (18%)</span><span style={{ fontWeight: 600, color: T.ink }}>Incluido</span>
                 </div>
                 <div style={{ height: 2, background: T.line, margin: '12px 0' }}/>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>Total</span>
                   <span style={{ fontSize: 28, fontWeight: 900, color: T.ink, fontFamily: T.display }}>{fmt(totalConDespacho)}</span>
                 </div>
@@ -254,24 +399,16 @@ export function ScreenCheckout({ theme: T }) {
                     Agrega {fmt(500 - total)} más para despacho gratis
                   </div>
                 )}
-
                 {error && (
-                  <div style={{ background: '#FCE7E2', borderRadius: 10, padding: '10px 12px', marginTop: 12, fontSize: 13, color: '#C0392B', fontWeight: 600 }}>
-                    {error}
-                  </div>
+                  <div style={{ background: '#FCE7E2', borderRadius: 10, padding: '10px 12px', marginTop: 12, fontSize: 13, color: '#C0392B', fontWeight: 600 }}>{error}</div>
                 )}
 
-                <button
-                  onClick={handleConfirmar}
-                  disabled={loading}
-                  style={{
-                    width: '100%', marginTop: 20, padding: '14px',
-                    background: loading ? T.ink3 : T.accent,
-                    color: '#fff', border: 'none', borderRadius: 12,
-                    fontWeight: 800, fontSize: 16, cursor: loading ? 'not-allowed' : 'pointer',
-                    fontFamily: T.display,
-                  }}
-                >
+                <button onClick={handleConfirmar} disabled={loading} style={{
+                  width: '100%', marginTop: 20, padding: '14px',
+                  background: loading ? T.ink3 : T.accent, color: '#fff',
+                  border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 16,
+                  cursor: loading ? 'not-allowed' : 'pointer', fontFamily: T.display,
+                }}>
                   {loading ? 'Registrando...' : 'Confirmar pedido'}
                 </button>
               </div>

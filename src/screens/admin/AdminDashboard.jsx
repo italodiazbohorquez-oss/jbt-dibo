@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { I } from '../../components/Icons';
 import { BtnPrimary, BtnSecondary, Chip, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
@@ -53,6 +54,7 @@ const ESTADO_LABEL = {
 
 export function AdminDashboard({ theme: T }) {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [kpis, setKpis] = useState({ ventasHoy: 0, pedidosActivos: 0, choferes: { enRuta: 0, total: 0 } });
   const [pedidos, setPedidos] = useState([]);
   const [stockCrit, setStockCrit] = useState([]);
@@ -85,7 +87,7 @@ export function AdminDashboard({ theme: T }) {
               <I.search size={16} color={T.ink3}/>
               <span style={{ fontSize: 13, color: T.ink3 }}>Buscar pedido, cliente, producto...</span>
             </div>
-            <BtnPrimary theme={T} icon={I.plus}>Nuevo pedido</BtnPrimary>
+            <BtnPrimary theme={T} icon={I.plus} onClick={() => navigate('/admin/pedidos', { state: { nuevo: true } })}>Nuevo pedido</BtnPrimary>
           </div>
         </div>
 

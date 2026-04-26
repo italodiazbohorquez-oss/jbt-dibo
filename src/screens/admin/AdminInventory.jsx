@@ -8,7 +8,7 @@ import { getStock, actualizarStock, crearProducto, actualizarProducto } from '..
 const TIPOS = ['arena', 'piedra', 'hormigon', 'cemento', 'ladrillo', 'fierro'];
 const CATEGORIAS = { arena: 'Agregados', piedra: 'Agregados', hormigon: 'Agregados', cemento: 'Cementos', ladrillo: 'Ladrillos', fierro: 'Fierros' };
 
-const EMPTY_FORM = { nombre: '', tipo: 'arena', descripcion: '', precio_unitario: '', costo: '', unidad: 'm³', stock_actual: '', stock_minimo: '', sku: '' };
+const EMPTY_FORM = { nombre: '', tipo: 'arena', descripcion: '', precio_unitario: '', unidad: 'm³', stock_actual: '', stock_minimo: '', sku: '' };
 
 function inputStyle(T) {
   return { width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, outline: 'none', boxSizing: 'border-box', background: '#fff' };
@@ -26,8 +26,8 @@ function ProductModal({ T, initial, onSave, onClose }) {
     if (!form.nombre || !form.precio_unitario || !form.stock_actual) { setError('Completa nombre, precio y stock'); return; }
     setLoading(true); setError('');
     const payload = {
-      nombre: form.nombre, tipo: form.tipo, descripcion: form.descripcion,
-      precio_unitario: Number(form.precio_unitario), costo: Number(form.costo) || null,
+      nombre: form.nombre, tipo: form.tipo, descripcion: form.descripcion || null,
+      precio_unitario: Number(form.precio_unitario),
       unidad: form.unidad, stock_actual: Number(form.stock_actual),
       stock_minimo: Number(form.stock_minimo) || 10, sku: form.sku || null,
     };
@@ -67,10 +67,6 @@ function ProductModal({ T, initial, onSave, onClose }) {
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Precio venta (S/) *</label>
               <input style={inputStyle(T)} type="number" step="0.01" value={form.precio_unitario} onChange={set('precio_unitario')} placeholder="75.00"/>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Costo (S/)</label>
-              <input style={inputStyle(T)} type="number" step="0.01" value={form.costo} onChange={set('costo')} placeholder="52.00"/>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Stock actual *</label>

@@ -1,45 +1,171 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { I } from '../../components/Icons';
 import { BtnPrimary, BtnSecondary, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { AdminSidebar } from './AdminSidebar';
-import { getPedidos, actualizarEstadoPedido } from '../../lib/api';
+import { getPedidos, actualizarEstadoPedido, crearPedido, getProductos } from '../../lib/api';
 
-const ESTADO_BADGE = {
-  pendiente: 'neutral', confirmado: 'primary', cargando: 'warn',
-  en_ruta: 'accent', entregado: 'ok', cancelado: 'danger',
-};
-const ESTADO_LABEL = {
-  pendiente: 'Pendiente', confirmado: 'Confirmado', cargando: 'Cargando',
-  en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado',
-};
+const ESTADO_BADGE  = { pendiente: 'neutral', confirmado: 'primary', cargando: 'warn', en_ruta: 'accent', entregado: 'ok', cancelado: 'danger' };
+const ESTADO_LABEL  = { pendiente: 'Pendiente', confirmado: 'Confirmado', cargando: 'Cargando', en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado' };
+const NEXT_ESTADO   = { pendiente: 'confirmado', confirmado: 'cargando', cargando: 'en_ruta', en_ruta: 'entregado' };
+const NEXT_LABEL    = { pendiente: 'Confirmar', confirmado: 'Cargar', cargando: 'Despachar', en_ruta: 'Entregar' };
+const FILTROS       = ['todos', 'pendiente', 'confirmado', 'cargando', 'en_ruta', 'entregado'];
+const FILTRO_LABEL  = { todos: 'Todos', ...ESTADO_LABEL };
 
-const NEXT_ESTADO = {
-  pendiente: 'confirmado',
-  confirmado: 'cargando',
-  cargando: 'en_ruta',
-  en_ruta: 'entregado',
-};
-const NEXT_LABEL = {
-  pendiente: 'Confirmar',
-  confirmado: 'Cargar',
-  cargando: 'Despachar',
-  en_ruta: 'Entregar',
-};
+// ── Modal: Nuevo pedido manual ──────────────────────────────
+function NuevoPedidoModal({ T, onSave, onClose }) {
+  const [productos, setProductos] = useState([]);
+  const [clienteNombre, setClienteNombre] = useState('');
+  const [clienteTelefono, setClienteTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [metodo, setMetodo] = useState('contraentrega');
+  const [lineas, setLineas] = useState([{ productoId: '', cantidad: 1 }]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-const FILTROS = ['todos', 'pendiente', 'confirmado', 'cargando', 'en_ruta', 'entregado'];
-const FILTRO_LABEL = { todos: 'Todos', ...ESTADO_LABEL };
+  useEffect(() => {
+    getProductos().then(({ data }) => setProductos(data || []));
+  }, []);
 
+  const inp = (val, set, ph) => (
+    <input
+      value={val} onChange={e => set(e.target.value)} placeholder={ph}
+      style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, outline: 'none', boxSizing: 'border-box' }}
+    />
+  );
+
+  function addLinea() { setLineas(prev => [...prev, { productoId: '', cantidad: 1 }]); }
+  function removeLinea(i) { setLineas(prev => prev.filter((_, j) => j !== i)); }
+  function setLinea(i, key, val) { setLineas(prev => prev.map((l, j) => j === i ? { ...l, [key]: val } : l)); }
+
+  const items = lineas.map(l => {
+    const prod = productos.find(p => p.id === l.productoId);
+    if (!prod) return null;
+    const cantidad = Number(l.cantidad) || 1;
+    return { producto_id: prod.id, nombre: prod.nombre, cantidad, precio_unitario: prod.precio_unitario, subtotal: prod.precio_unitario * cantidad };
+  }).filter(Boolean);
+
+  const total = items.reduce((s, i) => s + i.subtotal, 0);
+  const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
+
+  async function handleGuardar() {
+    if (!clienteNombre.trim()) { setError('Ingresa el nombre del cliente.'); return; }
+    if (!direccion.trim()) { setError('Ingresa la dirección de entrega.'); return; }
+    if (items.length === 0) { setError('Agrega al menos un producto.'); return; }
+    setLoading(true); setError('');
+    const { error: err } = await crearPedido({
+      clienteId: null,
+      items,
+      direccion: `${direccion.trim()} | Cliente: ${clienteNombre.trim()}${clienteTelefono ? ` · Tel: ${clienteTelefono}` : ''}`,
+      metodoPago: metodo,
+      fechaEntrega: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+    });
+    setLoading(false);
+    if (err) { setError(err.message || 'Error al crear el pedido.'); return; }
+    onSave();
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', fontFamily: T.body }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Nuevo pedido manual</div>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: T.ink3 }}>×</button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Cliente */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Datos del cliente</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, color: T.ink3, fontWeight: 600, marginBottom: 4 }}>Nombre *</label>
+                {inp(clienteNombre, setClienteNombre, 'Ej: Luis Quispe')}
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, color: T.ink3, fontWeight: 600, marginBottom: 4 }}>Teléfono</label>
+                {inp(clienteTelefono, setClienteTelefono, '9XX XXX XXX')}
+              </div>
+            </div>
+          </div>
+
+          {/* Dirección */}
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Dirección de entrega *</label>
+            {inp(direccion, setDireccion, 'Av. Los Álamos 342, Villa El Salvador')}
+          </div>
+
+          {/* Productos */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Productos *</div>
+            {lineas.map((l, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 32px', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <select
+                  value={l.productoId} onChange={e => setLinea(i, 'productoId', e.target.value)}
+                  style={{ padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, outline: 'none', background: '#fff' }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {productos.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} — {fmt(p.precio_unitario)}/{p.unidad}</option>
+                  ))}
+                </select>
+                <input
+                  type="number" min="1" value={l.cantidad} onChange={e => setLinea(i, 'cantidad', e.target.value)}
+                  style={{ padding: '10px 8px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, outline: 'none', textAlign: 'center' }}
+                />
+                <button onClick={() => removeLinea(i)} style={{ width: 32, height: 38, borderRadius: 8, border: 'none', background: T.chip, cursor: 'pointer', color: T.ink3, fontSize: 16 }}>×</button>
+              </div>
+            ))}
+            <button onClick={addLinea} style={{ padding: '8px 16px', borderRadius: 9, border: `1.5px dashed ${T.line}`, background: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: T.ink3, fontFamily: T.body }}>
+              + Agregar producto
+            </button>
+          </div>
+
+          {/* Método de pago */}
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Método de pago</label>
+            <select value={metodo} onChange={e => setMetodo(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, outline: 'none', background: '#fff' }}>
+              {[['contraentrega','Contra entrega'],['yape','Yape'],['transferencia','Transferencia bancaria'],['tarjeta','Tarjeta']].map(([v,l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Total preview */}
+          {items.length > 0 && (
+            <div style={{ background: T.primarySoft, borderRadius: 10, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 13, color: T.primary, fontWeight: 600 }}>{items.length} producto{items.length > 1 ? 's' : ''}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: T.primary, fontFamily: T.display }}>{fmt(total)}</div>
+            </div>
+          )}
+
+          {error && <div style={{ background: '#FCE7E2', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#C0392B', fontWeight: 600 }}>{error}</div>}
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1.5px solid ${T.line}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', color: T.ink3 }}>Cancelar</button>
+            <button onClick={handleGuardar} disabled={loading} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: loading ? T.ink3 : T.accent, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: T.body }}>
+              {loading ? 'Creando...' : 'Crear pedido'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Pantalla principal ──────────────────────────────────────
 export function AdminPedidos({ theme: T }) {
+  const location = useLocation();
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos');
   const [selected, setSelected] = useState(null);
   const [updating, setUpdating] = useState(null);
+  const [modalNuevo, setModalNuevo] = useState(location.state?.nuevo === true);
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
@@ -61,7 +187,6 @@ export function AdminPedidos({ theme: T }) {
   }
 
   const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
-
   const filtrados = filtro === 'todos' ? pedidos : pedidos.filter(p => p.estado === filtro);
 
   return (
@@ -75,7 +200,7 @@ export function AdminPedidos({ theme: T }) {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <BtnSecondary theme={T} icon={I.refresh} onClick={load}>Actualizar</BtnSecondary>
-            <BtnPrimary theme={T} icon={I.plus}>Nuevo pedido</BtnPrimary>
+            <BtnPrimary theme={T} icon={I.plus} onClick={() => setModalNuevo(true)}>Nuevo pedido</BtnPrimary>
           </div>
         </div>
 
@@ -89,7 +214,7 @@ export function AdminPedidos({ theme: T }) {
                 background: filtro === f ? T.primary : T.chip,
                 color: filtro === f ? '#fff' : T.ink3,
               }}>
-                {FILTRO_LABEL[f]} {count > 0 && <span style={{ opacity: .75 }}>({count})</span>}
+                {FILTRO_LABEL[f]}{count > 0 ? ` (${count})` : ''}
               </button>
             );
           })}
@@ -97,9 +222,7 @@ export function AdminPedidos({ theme: T }) {
 
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', overflow: 'hidden' }}>
           <div style={{ overflowY: 'auto' }}>
-            {loading && (
-              <div style={{ padding: 40, textAlign: 'center', color: T.ink3, fontSize: 13 }}>Cargando pedidos...</div>
-            )}
+            {loading && <div style={{ padding: 40, textAlign: 'center', color: T.ink3, fontSize: 13 }}>Cargando pedidos...</div>}
             {!loading && filtrados.length === 0 && (
               <div style={{ padding: 40, textAlign: 'center', color: T.ink3, fontSize: 13 }}>
                 Sin pedidos {filtro !== 'todos' ? `con estado "${ESTADO_LABEL[filtro]}"` : ''}
@@ -108,7 +231,7 @@ export function AdminPedidos({ theme: T }) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${T.line}` }}>
-                  {['Pedido', 'Cliente', 'Productos', 'Total', 'Estado', 'Fecha', 'Acción'].map(h => (
+                  {['Pedido', 'Cliente', 'Productos', 'Total', 'Estado', 'Entrega', 'Acción'].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', background: T.bg }}>{h}</th>
                   ))}
                 </tr>
@@ -139,9 +262,7 @@ export function AdminPedidos({ theme: T }) {
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontFamily: T.display, fontSize: 13, fontWeight: 800, color: T.ink }}>
-                        {fmt(p.total)}
-                      </td>
+                      <td style={{ padding: '12px 16px', fontFamily: T.display, fontSize: 13, fontWeight: 800, color: T.ink }}>{fmt(p.total)}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <Badge theme={T} tone={ESTADO_BADGE[p.estado] || 'neutral'}>{ESTADO_LABEL[p.estado] || p.estado}</Badge>
                       </td>
@@ -149,13 +270,14 @@ export function AdminPedidos({ theme: T }) {
                         {p.fecha_entrega ? new Date(p.fecha_entrega).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }) : '—'}
                       </td>
                       <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                        {NEXT_ESTADO[p.estado] && (
+                        {NEXT_ESTADO[p.estado] ? (
                           <button onClick={() => avanzarEstado(p)} disabled={updating === p.id}
                             style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: T.accent, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', opacity: updating === p.id ? .6 : 1 }}>
                             {updating === p.id ? '...' : NEXT_LABEL[p.estado]}
                           </button>
-                        )}
-                        {p.estado === 'entregado' && <span style={{ fontSize: 11, color: T.ok, fontWeight: 700 }}>✓ Completado</span>}
+                        ) : p.estado === 'entregado' ? (
+                          <span style={{ fontSize: 11, color: T.ok, fontWeight: 700 }}>✓ Listo</span>
+                        ) : null}
                       </td>
                     </tr>
                   );
@@ -168,37 +290,35 @@ export function AdminPedidos({ theme: T }) {
             <div style={{ borderLeft: `1px solid ${T.line}`, background: T.surface, overflowY: 'auto', padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Detalle del pedido</div>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                  <I.x size={18} color={T.ink3}/>
-                </button>
+                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>×</button>
               </div>
 
               <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 800, color: T.ink, marginBottom: 4 }}>{selected.numero}</div>
               <Badge theme={T} tone={ESTADO_BADGE[selected.estado] || 'neutral'} style={{ marginBottom: 16 }}>{ESTADO_LABEL[selected.estado]}</Badge>
 
-              <div style={{ background: T.chip, borderRadius: 10, padding: 12, marginBottom: 14 }}>
+              <div style={{ background: T.chip, borderRadius: 10, padding: 12, marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Cliente</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{selected.profiles?.nombre || 'Cliente'}</div>
                 {selected.profiles?.empresa && <div style={{ fontSize: 11, color: T.ink3 }}>{selected.profiles.empresa}</div>}
               </div>
 
-              <div style={{ background: T.chip, borderRadius: 10, padding: 12, marginBottom: 14 }}>
-                <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Entrega</div>
+              <div style={{ background: T.chip, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Dirección de entrega</div>
                 <div style={{ fontSize: 12, color: T.ink, fontWeight: 600 }}>{selected.direccion_entrega}</div>
                 {selected.fecha_entrega && (
-                  <div style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>
                     {new Date(selected.fecha_entrega).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </div>
                 )}
               </div>
 
-              <div style={{ marginBottom: 14 }}>
+              <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>Productos</div>
                 {selected.pedido_items?.map((item, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${T.line2}` }}>
                     <ProductIcon kind={item.productos?.tipo || 'arena'} size={32} theme={T}/>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>{item.productos?.nombre || '—'}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>{item.productos?.nombre || item.nombre || '—'}</div>
                       <div style={{ fontSize: 11, color: T.ink3 }}>{item.cantidad} {item.productos?.unidad}</div>
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(item.subtotal)}</div>
@@ -207,11 +327,11 @@ export function AdminPedidos({ theme: T }) {
               </div>
 
               <div style={{ background: T.chip, borderRadius: 10, padding: 12, marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
                   <span style={{ color: T.ink2 }}>Método de pago</span>
                   <span style={{ fontWeight: 700, color: T.ink }}>{selected.metodo_pago || '—'}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
                   <span style={{ color: T.ink, fontWeight: 700 }}>Total</span>
                   <span style={{ fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(selected.total)}</span>
                 </div>
@@ -227,6 +347,10 @@ export function AdminPedidos({ theme: T }) {
           )}
         </div>
       </div>
+
+      {modalNuevo && (
+        <NuevoPedidoModal T={T} onSave={() => { setModalNuevo(false); load(); }} onClose={() => setModalNuevo(false)}/>
+      )}
     </div>
   );
 }
