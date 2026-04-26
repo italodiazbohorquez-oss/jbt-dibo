@@ -202,22 +202,48 @@ export async function getPedidosEnRuta() {
 export async function getKPIs() {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [cajaDia, pedidosActivos, choferes] = await Promise.all([
-    supabase.from('caja').select('tipo, monto').eq('fecha', today),
-    supabase.from('pedidos').select('id', { count: 'exact' }).in('estado', ['confirmado','cargando','en_ruta']),
+  const [pedidosHoy, pedidosActivos, choferes, stockCrit] = await Promise.all([
+    supabase.from('pedidos').select('total, estado').gte('created_at', today + 'T00:00:00').lte('created_at', today + 'T23:59:59'),
+    supabase.from('pedidos').select('id', { count: 'exact' }).in('estado', ['confirmado', 'cargando', 'en_ruta']),
     supabase.from('choferes').select('estado').eq('activo', true),
+    supabase.from('productos').select('id', { count: 'exact' }).not('stock_minimo', 'is', null).filter('stock_actual', 'lte', 'stock_minimo'),
   ]);
 
-  const ingresos = (cajaDia.data ?? []).filter(r => r.tipo === 'ingreso').reduce((s, r) => s + Number(r.monto), 0);
-  const egresos  = (cajaDia.data ?? []).filter(r => r.tipo === 'egreso').reduce((s, r) => s + Number(r.monto), 0);
-  const enRuta   = (choferes.data ?? []).filter(c => c.estado === 'en_ruta').length;
-  const total    = (choferes.data ?? []).length;
+  const ventasHoy = (pedidosHoy.data ?? [])
+    .filter(p => p.estado !== 'cancelado')
+    .reduce((s, p) => s + Number(p.total), 0);
+  const enRuta = (choferes.data ?? []).filter(c => c.estado === 'en_ruta').length;
+  const total = (choferes.data ?? []).length;
 
   return {
-    ventasHoy: ingresos,
-    egresos,
-    saldo: ingresos - egresos,
+    ventasHoy,
     pedidosActivos: pedidosActivos.count ?? 0,
     choferes: { enRuta, total },
+    stockCritico: stockCrit.count ?? 0,
+    egresos: 0,
+    saldo: ventasHoy,
   };
+}
+
+export async function getVentas7Dias() {
+  const desde = new Date();
+  desde.setDate(desde.getDate() - 6);
+  desde.setHours(0, 0, 0, 0);
+  const { data } = await supabase
+    .from('pedidos')
+    .select('created_at, total, estado')
+    .gte('created_at', desde.toISOString())
+    .neq('estado', 'cancelado');
+
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const tot = (data ?? [])
+      .filter(p => p.created_at.slice(0, 10) === dateStr)
+      .reduce((s, p) => s + Number(p.total), 0);
+    days.push({ day: d.toLocaleDateString('es-PE', { weekday: 'short' }), total: tot, isToday: i === 0 });
+  }
+  return days;
 }

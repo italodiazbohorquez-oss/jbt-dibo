@@ -16,8 +16,11 @@ import { AdminDashboard } from './screens/admin/AdminDashboard';
 import { AdminRoutes } from './screens/admin/AdminRoutes';
 import { AdminInventory } from './screens/admin/AdminInventory';
 import { AdminPedidos } from './screens/admin/AdminPedidos';
+import { AdminCaja } from './screens/admin/AdminCaja';
+import { AdminClientes } from './screens/admin/AdminClientes';
 import { ScreenRepartidor } from './screens/repartidor/ScreenRepartidor';
 import { ScreenCuenta } from './screens/client/ScreenCuenta';
+import { ScreenRegistro } from './screens/client/ScreenRegistro';
 import { useIsMobile } from './hooks/useIsMobile';
 
 const T = TOKENS.cantera;
@@ -251,6 +254,8 @@ function AppContent() {
           <Route path="/admin/pedidos" element={<AdminPedidos theme={T}/>}/>
           <Route path="/admin/rutas" element={<AdminRoutes theme={T}/>}/>
           <Route path="/admin/inventario" element={<AdminInventory theme={T}/>}/>
+          <Route path="/admin/caja" element={<AdminCaja theme={T}/>}/>
+          <Route path="/admin/clientes" element={<AdminClientes theme={T}/>}/>
           <Route path="/admin/*" element={<AdminDashboard theme={T}/>}/>
         </Routes>
       </div>
@@ -264,6 +269,7 @@ function AppContent() {
         <Route path="/" element={<LandingScreen/>}/>
         <Route path="/login" element={<LoginScreen initialMode="login"/>}/>
         <Route path="/register" element={<LoginScreen initialMode="register"/>}/>
+        <Route path="/registro" element={<ScreenRegistro theme={T}/>}/>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>
     );

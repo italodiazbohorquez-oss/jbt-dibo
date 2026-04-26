@@ -3,15 +3,15 @@ import { useAuth } from '../../context/AuthContext';
 import { I } from '../../components/Icons';
 
 const items = [
-  { id: 'dash',    path: '/admin',             l: 'Dashboard',     i: 'chart'    },
-  { id: 'orders',  path: '/admin/pedidos',     l: 'Pedidos',       i: 'doc'      },
-  { id: 'stock',   path: '/admin/inventario',  l: 'Inventario',    i: 'box'      },
-  { id: 'routes',  path: '/admin/rutas',       l: 'Rutas',         i: 'route'    },
+  { id: 'dash',     path: '/admin',             l: 'Dashboard',   i: 'chart'   },
+  { id: 'orders',   path: '/admin/pedidos',     l: 'Pedidos',     i: 'doc'     },
+  { id: 'stock',    path: '/admin/inventario',  l: 'Inventario',  i: 'box'     },
+  { id: 'routes',   path: '/admin/rutas',       l: 'Rutas',       i: 'route'   },
+  { id: 'caja',     path: '/admin/caja',        l: 'Caja diaria', i: 'wallet'  },
+  { id: 'clientes', path: '/admin/clientes',    l: 'Clientes',    i: 'users'   },
 ];
 
 const itemsProximo = [
-  { id: 'cash',    l: 'Caja diaria',    i: 'wallet'   },
-  { id: 'clients', l: 'Clientes',       i: 'users'    },
   { id: 'quotes',  l: 'Cotizaciones',   i: 'calc'     },
   { id: 'invoice', l: 'Facturación',    i: 'file'     },
   { id: 'team',    l: 'Personal',       i: 'hardhat'  },

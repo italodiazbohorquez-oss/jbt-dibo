@@ -30,11 +30,16 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }
 
-  async function signUp({ email, password, nombre, rol = 'cliente', empresa }) {
+  async function signUp({ email, password, nombre, rol = 'cliente', empresa, telefono }) {
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { nombre, rol, empresa } },
+      options: { data: { nombre, rol, empresa, telefono } },
     });
+    if (!error && data.user) {
+      await supabase.from('profiles').upsert({
+        id: data.user.id, nombre, rol, empresa: empresa || null, telefono: telefono || null,
+      });
+    }
     return { data, error };
   }
 
