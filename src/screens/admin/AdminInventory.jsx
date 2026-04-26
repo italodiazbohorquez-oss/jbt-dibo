@@ -8,7 +8,7 @@ import { getStock, actualizarStock, crearProducto, actualizarProducto } from '..
 const TIPOS = ['arena', 'piedra', 'hormigon', 'cemento', 'ladrillo', 'fierro'];
 const CATEGORIAS = { arena: 'Agregados', piedra: 'Agregados', hormigon: 'Agregados', cemento: 'Cementos', ladrillo: 'Ladrillos', fierro: 'Fierros' };
 
-const EMPTY_FORM = { nombre: '', tipo: 'arena', descripcion: '', precio_unitario: '', unidad: 'm³', stock_actual: '', stock_minimo: '', sku: '' };
+const EMPTY_FORM = { nombre: '', tipo: 'arena', descripcion: '', precio_unitario: '', costo: '', unidad: 'm³', stock_actual: '', stock_minimo: '', sku: '' };
 
 function inputStyle(T) {
   return { width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, outline: 'none', boxSizing: 'border-box', background: '#fff' };
@@ -28,6 +28,7 @@ function ProductModal({ T, initial, onSave, onClose }) {
     const payload = {
       nombre: form.nombre, tipo: form.tipo, descripcion: form.descripcion || null,
       precio_unitario: Number(form.precio_unitario),
+      costo: form.costo !== '' ? Number(form.costo) : null,
       unidad: form.unidad, stock_actual: Number(form.stock_actual),
       stock_minimo: Number(form.stock_minimo) || 10, sku: form.sku || null,
     };
@@ -68,6 +69,23 @@ function ProductModal({ T, initial, onSave, onClose }) {
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Precio venta (S/) *</label>
               <input style={inputStyle(T)} type="number" step="0.01" value={form.precio_unitario} onChange={set('precio_unitario')} placeholder="75.00"/>
             </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Costo (S/)</label>
+              <input style={inputStyle(T)} type="number" step="0.01" value={form.costo} onChange={set('costo')} placeholder="52.00"/>
+            </div>
+            {form.precio_unitario && form.costo && Number(form.costo) > 0 && (
+              <div style={{ gridColumn: '1/-1', background: '#E6F4EA', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#166534' }}>Utilidad por unidad</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: '#166534' }}>
+                    S/{(Number(form.precio_unitario) - Number(form.costo)).toFixed(2)}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#166534', marginLeft: 6 }}>
+                    ({Math.round(((Number(form.precio_unitario) - Number(form.costo)) / Number(form.costo)) * 100)}% margen)
+                  </span>
+                </div>
+              </div>
+            )}
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Stock actual *</label>
               <input style={inputStyle(T)} type="number" value={form.stock_actual} onChange={set('stock_actual')} placeholder="100"/>
@@ -171,15 +189,17 @@ export function AdminInventory({ theme: T }) {
             </div>
           ) : (
             <div style={{ background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1.4fr 1fr 1fr .5fr', padding: '12px 18px', background: T.chip, fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                <div>Producto</div><div>SKU</div><div>Stock</div><div>Precio</div><div>Categoría</div><div></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1.3fr 1fr 1fr .5fr', padding: '12px 18px', background: T.chip, fontSize: 11, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                <div>Producto</div><div>SKU</div><div>Stock</div><div>Precio / Costo</div><div>Utilidad</div><div></div>
               </div>
               {filtrados.map((p, i) => {
                 const pct = p.stock_minimo ? Math.min(100, (p.stock_actual / p.stock_minimo) * 100) : 100;
                 const status = pct < 30 ? 'crit' : pct < 70 ? 'low' : 'ok';
                 const statusColor = status === 'crit' ? T.danger : status === 'low' ? '#E5B100' : T.ok;
+                const utilidad = p.costo ? Number(p.precio_unitario) - Number(p.costo) : null;
+                const margenPct = p.costo ? Math.round((utilidad / Number(p.costo)) * 100) : null;
                 return (
-                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1.4fr 1fr 1fr .5fr', padding: '14px 18px', borderTop: i > 0 ? `1px solid ${T.line2 || T.line}` : 'none', alignItems: 'center' }}>
+                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1.3fr 1fr 1fr .5fr', padding: '14px 18px', borderTop: i > 0 ? `1px solid ${T.line2 || T.line}` : 'none', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <ProductIcon kind={p.tipo} size={40} theme={T}/>
                       <div>
@@ -216,8 +236,24 @@ export function AdminInventory({ theme: T }) {
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: T.display }}>{fmt(p.precio_unitario)}<span style={{ fontSize: 10, color: T.ink3, fontWeight: 400 }}>/{p.unidad}</span></div>
-                    <div style={{ fontSize: 12, color: T.ink2 }}>{CATEGORIAS[p.tipo] || p.tipo}</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: T.display }}>{fmt(p.precio_unitario)}<span style={{ fontSize: 10, color: T.ink3, fontWeight: 400 }}>/{p.unidad}</span></div>
+                      {p.costo && <div style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}>Costo: {fmt(p.costo)}</div>}
+                    </div>
+                    <div>
+                      {utilidad !== null ? (
+                        <>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: utilidad > 0 ? T.ok : T.danger, fontFamily: T.display }}>
+                            {utilidad > 0 ? '+' : ''}{fmt(utilidad)}
+                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: utilidad > 0 ? T.ok : T.danger, marginTop: 1 }}>
+                            {margenPct}% margen
+                          </div>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: 11, color: T.ink3 }}>Sin costo</span>
+                      )}
+                    </div>
                     <button onClick={() => setModal(p)} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${T.line}`, background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       ✏️
                     </button>
