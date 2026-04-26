@@ -128,11 +128,11 @@ function SmartRedirect() {
 
 function AppContent() {
   const [themeKey, setThemeKey] = useState('cantera');
-  const [authView, setAuthView] = useState('landing');
   const location = useLocation();
   const { user, profile, loading } = useAuth();
 
   const isAdmin = location.pathname.startsWith('/admin');
+  const isAuth = location.pathname === '/login' || location.pathname === '/register';
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1410', fontFamily: T.body }}>
@@ -145,20 +145,19 @@ function AppContent() {
     </div>
   );
 
-  // No autenticado → landing o login
+  // Rutas públicas (sin sesión requerida)
   if (!user) {
-    if (authView === 'landing') {
-      return (
-        <LandingScreen
-          onLogin={() => setAuthView('login')}
-          onRegister={() => setAuthView('register')}
-        />
-      );
-    }
-    return <LoginScreen onBack={() => setAuthView('landing')} initialMode={authView}/>;
+    return (
+      <Routes>
+        <Route path="/" element={<LandingScreen/>}/>
+        <Route path="/login" element={<LoginScreen initialMode="login"/>}/>
+        <Route path="/register" element={<LoginScreen initialMode="register"/>}/>
+        <Route path="*" element={<Navigate to="/" replace/>}/>
+      </Routes>
+    );
   }
 
-  // Admin → pantalla completa sin TopNav de clientes
+  // Admin → pantalla completa, sin TopNav de clientes
   if (isAdmin) {
     if (profile && profile.rol !== 'admin') return <Navigate to="/cliente/home" replace/>;
     return (
@@ -181,6 +180,8 @@ function AppContent() {
       <div style={{ marginTop: 52 }}>
         <Routes>
           <Route path="/" element={<SmartRedirect/>}/>
+          <Route path="/login" element={<SmartRedirect/>}/>
+          <Route path="/register" element={<SmartRedirect/>}/>
           <Route path="/cliente/home" element={<MobileWrapper><ScreenHome theme={T}/></MobileWrapper>}/>
           <Route path="/cliente/detalle" element={<MobileWrapper><ScreenDetail theme={T}/></MobileWrapper>}/>
           <Route path="/cliente/cotizador" element={<MobileWrapper><ScreenQuote theme={T}/></MobileWrapper>}/>

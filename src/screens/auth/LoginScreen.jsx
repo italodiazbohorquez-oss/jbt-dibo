@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { TOKENS } from '../../tokens';
 
@@ -41,7 +42,8 @@ function StepIndicator({ step, total }) {
   );
 }
 
-export function LoginScreen({ onBack, initialMode = 'login' }) {
+export function LoginScreen({ initialMode = 'login' }) {
+  const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState(initialMode); // 'login' | 'register'
   const [step, setStep] = useState(1); // registro en pasos
@@ -110,11 +112,9 @@ export function LoginScreen({ onBack, initialMode = 'login' }) {
     }}>
       <div style={{ width: '100%', maxWidth: 440 }}>
         {/* Volver al inicio */}
-        {onBack && (
-          <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, padding: 0, fontFamily: BODY }}>
-            ← Volver al inicio
-          </button>
-        )}
+        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, padding: 0, fontFamily: BODY }}>
+          ← Volver al inicio
+        </button>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ width: 52, height: 52, borderRadius: 13, background: T.accent, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>

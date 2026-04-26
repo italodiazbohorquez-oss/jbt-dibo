@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const PRIMARY = '#0E5A3D';
 const ACCENT = '#F26B1D';
@@ -21,8 +22,12 @@ const BENEFICIOS = [
   { icon: '💰', titulo: 'Precio de cantera', desc: 'Sin intermediarios. Compra directo al distribuidor con precios justos.' },
 ];
 
-export function LandingScreen({ onLogin, onRegister }) {
+export function LandingScreen() {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+
+  const onLogin = () => navigate('/login');
+  const onRegister = () => navigate('/register');
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
