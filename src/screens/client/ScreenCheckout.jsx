@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductIcon } from '../../components/ProductIcon';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { crearPedido } from '../../lib/api';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { supabase } from '../../lib/supabase';
 
 // ── Logos de pago ───────────────────────────────────────────
 function LogoYape() {
@@ -83,6 +84,12 @@ export function ScreenCheckout({ theme: T }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const channelRef = useRef(null);
+  useEffect(() => {
+    const ch = supabase.channel('jbt-live').subscribe();
+    channelRef.current = ch;
+    return () => supabase.removeChannel(ch);
+  }, []);
   const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
   const totalConDespacho = total >= 500 ? total : total + 50;
 
@@ -160,6 +167,12 @@ export function ScreenCheckout({ theme: T }) {
       setError(`Error: ${err.message || err.details || JSON.stringify(err)}`);
       return;
     }
+    // Notificar al admin instantáneamente
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'order:new',
+      payload: { id: pedido.id, numero: pedido.numero, total: pedido.total },
+    }).catch(() => {});
     vaciar();
     navigate('/cliente/pedidos', { state: { nuevoPedido: pedido } });
   }

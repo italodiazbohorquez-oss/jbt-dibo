@@ -159,20 +159,26 @@ export function ScreenPedidos({ theme: T }) {
     if (!user) return;
 
     function fetchPedidos() {
-      return getPedidosByCliente(user.id).then(({ data, error }) => {
-        if (!error) setPedidos(data || []);
+      return getPedidosByCliente(user.id).then(({ data }) => {
+        if (data) setPedidos(data);
         setLoading(false);
       });
     }
 
     fetchPedidos();
 
-    // Polling cada 8s como respaldo garantizado
-    const interval = setInterval(fetchPedidos, 8000);
+    // Actualizar al volver al tab (crítico en móvil donde los timers se suspenden)
+    function onVisible() {
+      if (document.visibilityState === 'visible') fetchPedidos();
+    }
+    document.addEventListener('visibilitychange', onVisible);
 
-    // Broadcast: instantáneo cuando el WebSocket funciona
+    // Polling cada 5s como respaldo garantizado
+    const interval = setInterval(fetchPedidos, 5000);
+
+    // Broadcast: canal jbt-live (mismo nombre que usa el admin para enviar)
     const channel = supabase
-      .channel('jbt-live-client-' + user.id)
+      .channel('jbt-live')
       .on('broadcast', { event: 'order:updated' }, ({ payload }) => {
         if (payload.cliente_id !== user.id) return;
         setPedidos(prev => prev.map(p =>
@@ -185,6 +191,7 @@ export function ScreenPedidos({ theme: T }) {
 
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
       supabase.removeChannel(channel);
     };
   }, [user]);

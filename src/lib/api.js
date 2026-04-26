@@ -1,18 +1,5 @@
 import { supabase } from './supabase';
 
-// Canal broadcast singleton — mensajes instantáneos cross-client vía WebSocket
-let _bc = null;
-function bc() {
-  if (!_bc) {
-    _bc = supabase.channel('jbt-live');
-    _bc.subscribe();
-  }
-  return _bc;
-}
-function send(event, payload) {
-  try { bc().send({ type: 'broadcast', event, payload }); } catch (_) {}
-}
-
 // ── Productos ──────────────────────────────────────────────
 export async function getProductos() {
   const { data, error } = await supabase
@@ -70,7 +57,6 @@ export async function crearPedido({ clienteId, items, direccion, metodoPago, fec
   }));
 
   const { error: itemErr } = await supabase.from('pedido_items').insert(pedidoItems);
-  if (!itemErr) send('order:new', { id: pedido.id, numero: pedido.numero, total: pedido.total });
   return { data: pedido, error: itemErr };
 }
 
@@ -81,7 +67,6 @@ export async function actualizarEstadoPedido(pedidoId, estado) {
     .eq('id', pedidoId)
     .select()
     .single();
-  if (data) send('order:updated', { id: data.id, estado, cliente_id: data.cliente_id });
   return { data, error };
 }
 
@@ -170,7 +155,6 @@ export async function cancelarPedido(pedidoId, motivo = '') {
     .eq('id', pedidoId)
     .select()
     .single();
-  if (data) send('order:updated', { id: data.id, estado: 'cancelado', cliente_id: data.cliente_id, motivo_cancelacion: motivo });
   return { data, error };
 }
 

@@ -199,37 +199,37 @@ export function AdminPedidos({ theme: T }) {
   const [newOrderToast, setNewOrderToast] = useState(null);
   const knownIdsRef = useRef(null); // null = primera carga aún no hecha
 
+  const channelRef = useRef(null);
+
   useEffect(() => {
     load();
     getChoferes().then(({ data }) => setChoferes(data || []));
 
-    // Polling cada 8s — respaldo garantizado
-    const interval = setInterval(silentLoadWithCheck, 8000);
+    // Actualizar al volver al tab (crítico en móvil)
+    function onVisible() {
+      if (document.visibilityState === 'visible') silentLoadWithCheck();
+    }
+    document.addEventListener('visibilitychange', onVisible);
 
-    // Broadcast: instantáneo cuando el WebSocket funciona
+    // Polling cada 5s — respaldo garantizado
+    const interval = setInterval(silentLoadWithCheck, 5000);
+
+    // Broadcast: canal jbt-live (mismo nombre que usa el cliente para enviar)
     const channel = supabase
-      .channel('jbt-live-admin')
+      .channel('jbt-live')
       .on('broadcast', { event: 'order:new' }, ({ payload }) => {
         playNotifSound();
         setNewOrderToast(payload);
         setTimeout(() => setNewOrderToast(null), 6000);
-        silentLoad();
-      })
-      .on('broadcast', { event: 'order:updated' }, ({ payload }) => {
-        setPedidos(prev => prev.map(p =>
-          p.id === payload.id
-            ? { ...p, estado: payload.estado, motivo_cancelacion: payload.motivo_cancelacion ?? p.motivo_cancelacion }
-            : p
-        ));
-        setSelected(prev => prev?.id === payload.id
-          ? { ...prev, estado: payload.estado }
-          : prev
-        );
+        silentLoadWithCheck();
       })
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -266,6 +266,14 @@ export function AdminPedidos({ theme: T }) {
     setPedidos(data);
   }
 
+  function broadcastUpdate(id, estado, cliente_id, extra = {}) {
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'order:updated',
+      payload: { id, estado, cliente_id, ...extra },
+    }).catch(() => {});
+  }
+
   async function avanzarEstado(pedido) {
     const next = NEXT_ESTADO[pedido.estado];
     if (!next) return;
@@ -275,6 +283,7 @@ export function AdminPedidos({ theme: T }) {
       const updated = { ...pedido, estado: next };
       setPedidos(prev => prev.map(p => p.id === pedido.id ? updated : p));
       if (selected?.id === pedido.id) setSelected(updated);
+      broadcastUpdate(data.id, next, data.cliente_id);
       const phone = pedido.profiles?.telefono;
       if (phone && WA_MSG[next]) {
         setWaPending({ numero: pedido.numero, phone, estado: next });
@@ -570,6 +579,7 @@ export function AdminPedidos({ theme: T }) {
                   const updated = { ...selected, estado: 'cancelado', motivo_cancelacion: motivoAdmin.trim() };
                   setPedidos(prev => prev.map(p => p.id === selected.id ? updated : p));
                   setSelected(updated);
+                  broadcastUpdate(data.id, 'cancelado', data.cliente_id, { motivo_cancelacion: motivoAdmin.trim() });
                 }
                 setCancelando(false);
                 setCancelModal(false);
