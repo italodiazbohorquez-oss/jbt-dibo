@@ -112,7 +112,7 @@ export function LoginScreen({ initialMode = 'login' }) {
     }}>
       <div style={{ width: '100%', maxWidth: 440 }}>
         {/* Volver al inicio */}
-        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, padding: 0, fontFamily: BODY }}>
+        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, padding: 0, fontFamily: T.body }}>
           ← Volver al inicio
         </button>
         {/* Logo */}
