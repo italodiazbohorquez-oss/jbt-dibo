@@ -48,11 +48,37 @@ export async function crearPedido({ clienteId, items, direccion, metodoPago, fec
 
   if (pedErr) return { error: pedErr };
 
+  // Solo insertar columnas que definitivamente existen en pedido_items
+  const pedidoItems = items.map(i => ({
+    pedido_id: pedido.id,
+    producto_id: i.producto_id || null,
+    cantidad: Number(i.cantidad),
+    subtotal: Number(i.subtotal),
+    // Campos opcionales: se incluyen solo si tienen valor
+    ...(i.nombre        && { nombre: i.nombre }),
+    ...(i.precio_unitario != null && { precio_unitario: Number(i.precio_unitario) }),
+  }));
+
   const { error: itemErr } = await supabase
     .from('pedido_items')
-    .insert(items.map(i => ({ pedido_id: pedido.id, ...i })));
+    .insert(pedidoItems);
 
-  return { data: pedido, error: itemErr };
+  if (itemErr) {
+    // Si falla por columna inexistente, reintentamos sin campos opcionales
+    if (itemErr.code === '42703') {
+      const itemsMinimos = items.map(i => ({
+        pedido_id: pedido.id,
+        producto_id: i.producto_id || null,
+        cantidad: Number(i.cantidad),
+        subtotal: Number(i.subtotal),
+      }));
+      const { error: itemErr2 } = await supabase.from('pedido_items').insert(itemsMinimos);
+      return { data: pedido, error: itemErr2 };
+    }
+    return { data: pedido, error: itemErr };
+  }
+
+  return { data: pedido, error: null };
 }
 
 export async function actualizarEstadoPedido(pedidoId, estado) {

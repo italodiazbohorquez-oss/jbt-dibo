@@ -150,7 +150,10 @@ export function ScreenCheckout({ theme: T }) {
     });
 
     setLoading(false);
-    if (err) { setError('Error al registrar el pedido. Intenta de nuevo.'); return; }
+    if (err) {
+      setError(`Error: ${err.message || err.details || JSON.stringify(err)}`);
+      return;
+    }
     vaciar();
     navigate('/cliente/pedidos');
   }
