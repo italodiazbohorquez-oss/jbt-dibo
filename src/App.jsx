@@ -17,6 +17,7 @@ import { AdminRoutes } from './screens/admin/AdminRoutes';
 import { AdminInventory } from './screens/admin/AdminInventory';
 import { AdminPedidos } from './screens/admin/AdminPedidos';
 import { ScreenRepartidor } from './screens/repartidor/ScreenRepartidor';
+import { useIsMobile } from './hooks/useIsMobile';
 
 const T = TOKENS.cantera;
 
@@ -113,6 +114,7 @@ function ClientTopNav() {
   const location = useLocation();
   const { profile, signOut } = useAuth();
   const { totalItems } = useCart();
+  const isMobile = useIsMobile();
 
   const isClient = location.pathname.startsWith('/cliente');
   const isB2B = location.pathname.startsWith('/b2b');
@@ -123,74 +125,84 @@ function ClientTopNav() {
     (rol === 'maestro' || rol === 'ferreteria') && { path: '/b2b', label: 'Ferretería B2B', icon: '🏪', active: isB2B },
   ].filter(Boolean);
 
+  const homeRoute = rol === 'ferreteria' ? '/b2b' : '/cliente/home';
+
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
       background: 'rgba(255,255,255,.96)', backdropFilter: 'blur(12px)',
       borderBottom: '1px solid rgba(0,0,0,.08)',
       display: 'flex', alignItems: 'center',
-      padding: '0 24px', height: 52, fontFamily: T.body,
+      padding: isMobile ? '0 16px' : '0 24px', height: 52, fontFamily: T.body,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 28, cursor: 'pointer' }} onClick={() => navigate(rol === 'ferreteria' ? '/b2b' : '/cliente/home')}>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate(homeRoute)}>
         <div style={{ width: 28, height: 28, borderRadius: 7, background: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11, fontFamily: T.display }}>JB</div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, fontFamily: T.display, lineHeight: 1.2 }}>JBT DIBO S.A.C</div>
-          <div style={{ fontSize: 9, color: T.ink3, lineHeight: 1 }}>RUC 20615017770</div>
+        {!isMobile && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, fontFamily: T.display, lineHeight: 1.2 }}>JBT DIBO S.A.C</div>
+            <div style={{ fontSize: 9, color: T.ink3, lineHeight: 1 }}>RUC 20615017770</div>
+          </div>
+        )}
+      </div>
+
+      {/* Nav links — desktop only */}
+      {!isMobile && (
+        <div style={{ display: 'flex', gap: 4, marginLeft: 20 }}>
+          {navItems.map((s) => (
+            <button key={s.path} onClick={() => navigate(s.path)} style={{
+              padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: T.body,
+              background: s.active ? T.primarySoft : 'transparent',
+              color: s.active ? T.primary : '#67746F',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span>{s.icon}</span>{s.label}
+            </button>
+          ))}
         </div>
-      </div>
+      )}
 
-      <div style={{ display: 'flex', gap: 4 }}>
-        {navItems.map((s) => (
-          <button key={s.path} onClick={() => navigate(s.path)} style={{
-            padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600, fontFamily: T.body,
-            background: s.active ? T.primarySoft : 'transparent',
-            color: s.active ? T.primary : '#67746F',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <span>{s.icon}</span>{s.label}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+      {/* Right side */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 8, marginLeft: 'auto' }}>
+        {/* Cart */}
         <button onClick={() => navigate('/cliente/checkout')} style={{
-          position: 'relative', padding: '6px 14px', borderRadius: 8, border: `1px solid ${T.line}`,
+          position: 'relative', padding: '6px 12px', borderRadius: 8, border: `1px solid ${T.line}`,
           background: totalItems > 0 ? T.primarySoft : '#fff', cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 6, fontFamily: T.body, fontSize: 13, fontWeight: 600,
           color: totalItems > 0 ? T.primary : T.ink3,
         }}>
-          🛒 Carrito
+          🛒 {!isMobile && 'Carrito'}
           {totalItems > 0 && (
             <span style={{ background: T.accent, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 800, padding: '1px 6px', minWidth: 18, textAlign: 'center' }}>{totalItems}</span>
           )}
         </button>
 
-        <button onClick={() => navigate('/cliente/pedidos')} style={{
-          padding: '6px 14px', borderRadius: 8, border: `1px solid ${T.line}`,
-          background: location.pathname === '/cliente/pedidos' ? T.primarySoft : '#fff',
-          color: location.pathname === '/cliente/pedidos' ? T.primary : T.ink3,
-          cursor: 'pointer', fontFamily: T.body, fontSize: 13, fontWeight: 600,
-        }}>
-          Mis pedidos
-        </button>
+        {/* Mis pedidos — desktop only */}
+        {!isMobile && (
+          <button onClick={() => navigate('/cliente/pedidos')} style={{
+            padding: '6px 14px', borderRadius: 8, border: `1px solid ${T.line}`,
+            background: location.pathname === '/cliente/pedidos' ? T.primarySoft : '#fff',
+            color: location.pathname === '/cliente/pedidos' ? T.primary : T.ink3,
+            cursor: 'pointer', fontFamily: T.body, fontSize: 13, fontWeight: 600,
+          }}>
+            Mis pedidos
+          </button>
+        )}
 
+        {/* User initial avatar — always */}
         {profile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: T.primary }}>
-              {profile.nombre?.charAt(0)?.toUpperCase() || '?'}
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, lineHeight: 1.2 }}>{profile.nombre?.split(' ')[0]}</div>
-              {profile.rol === 'maestro' && (
-                <div style={{ fontSize: 9, fontWeight: 700, color: T.accent, textTransform: 'uppercase' }}>Maestro de obras</div>
-              )}
-            </div>
+          <div onClick={() => navigate('/cliente/pedidos')} style={{ width: 32, height: 32, borderRadius: '50%', background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: T.primary, cursor: 'pointer', flexShrink: 0 }}>
+            {profile.nombre?.charAt(0)?.toUpperCase() || '?'}
           </div>
         )}
-        <button onClick={signOut} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${T.line}`, background: '#fff', fontSize: 12, fontWeight: 600, color: T.ink3, cursor: 'pointer', fontFamily: T.body }}>
-          Salir
-        </button>
+
+        {/* Sign out — desktop only */}
+        {!isMobile && (
+          <button onClick={signOut} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${T.line}`, background: '#fff', fontSize: 12, fontWeight: 600, color: T.ink3, cursor: 'pointer', fontFamily: T.body }}>
+            Salir
+          </button>
+        )}
       </div>
     </nav>
   );
@@ -257,10 +269,50 @@ function AppContent() {
   }
 
   // ── Rutas de clientes ─────────────────────────────────────────────────────
+  return <ClientLayout/>;
+}
+
+function MobileTabBar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { totalItems } = useCart();
+  const { signOut } = useAuth();
+  const tabs = [
+    { path: '/cliente/home', icon: '🏠', label: 'Inicio' },
+    { path: '/cliente/pedidos', icon: '📦', label: 'Pedidos' },
+    { path: '/cliente/cotizador', icon: '🧮', label: 'Cotizar' },
+  ];
+  return (
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+      background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(12px)',
+      borderTop: '1px solid rgba(0,0,0,.08)',
+      display: 'flex', height: 60, paddingBottom: 'env(safe-area-inset-bottom)',
+      fontFamily: T.body,
+    }}>
+      {tabs.map(tab => {
+        const active = location.pathname === tab.path;
+        return (
+          <div key={tab.path} onClick={() => navigate(tab.path)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer' }}>
+            <span style={{ fontSize: 20 }}>{tab.icon}</span>
+            <span style={{ fontSize: 10, fontWeight: active ? 800 : 600, color: active ? T.accent : T.ink3 }}>{tab.label}</span>
+          </div>
+        );
+      })}
+      <div onClick={signOut} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer' }}>
+        <span style={{ fontSize: 20 }}>⎋</span>
+        <span style={{ fontSize: 10, fontWeight: 600, color: T.ink3 }}>Salir</span>
+      </div>
+    </div>
+  );
+}
+
+function ClientLayout() {
+  const isMobile = useIsMobile();
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <ClientTopNav/>
-      <div style={{ marginTop: 52 }}>
+      <div style={{ marginTop: 52, paddingBottom: isMobile ? 60 : 0 }}>
         <Routes>
           <Route path="/" element={<SmartRedirect/>}/>
           <Route path="/login" element={<SmartRedirect/>}/>
@@ -275,6 +327,7 @@ function AppContent() {
           <Route path="*" element={<SmartRedirect/>}/>
         </Routes>
       </div>
+      {isMobile && <MobileTabBar/>}
     </div>
   );
 }

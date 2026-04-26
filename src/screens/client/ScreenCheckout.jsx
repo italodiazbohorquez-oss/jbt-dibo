@@ -4,6 +4,7 @@ import { ProductIcon } from '../../components/ProductIcon';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { crearPedido } from '../../lib/api';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Logos de pago ───────────────────────────────────────────
 function LogoYape() {
@@ -70,6 +71,7 @@ export function ScreenCheckout({ theme: T }) {
   const navigate = useNavigate();
   const { items, total, vaciar, actualizarCantidad, quitar } = useCart();
   const { user, profile } = useAuth();
+  const isMobile = useIsMobile();
 
   const [metodo, setMetodo] = useState('yape');
   const [direccion, setDireccion] = useState('');
@@ -169,14 +171,14 @@ export function ScreenCheckout({ theme: T }) {
   const fmtFecha = (d) => d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' });
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+    <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body, paddingBottom: isMobile ? 80 : 0 }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '16px 14px' : '32px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: isMobile ? 16 : 28 }}>
           <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, color: T.ink3, fontSize: 20 }}>←</button>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Confirmar pedido</h1>
+          <h1 style={{ margin: 0, fontSize: isMobile ? 20 : 24, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Confirmar pedido</h1>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 380px', gap: isMobile ? 14 : 24, alignItems: 'start' }}>
           {/* Left column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -298,20 +300,22 @@ export function ScreenCheckout({ theme: T }) {
                 🧱 Tu pedido ({items.length} {items.length === 1 ? 'producto' : 'productos'})
               </div>
               {items.map((x, i, arr) => (
-                <div key={x.producto_id ?? x.nombre} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line}` : 'none' }}>
-                  <ProductIcon kind={x.tipo} size={52} theme={T}/>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>{x.nombre}</div>
-                    <div style={{ fontSize: 13, color: T.ink3 }}>{x.unidad} · {fmt(x.precio_unitario)} c/u</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: T.bg, borderRadius: 8, padding: '4px 8px', border: `1px solid ${T.line}` }}>
-                      <button onClick={() => x.cantidad <= 1 ? quitar(x.producto_id ?? x.nombre) : actualizarCantidad(x.producto_id ?? x.nombre, x.cantidad - 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, minWidth: 24, textAlign: 'center' }}>{x.cantidad}</span>
-                      <button onClick={() => actualizarCantidad(x.producto_id ?? x.nombre, x.cantidad + 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                <div key={x.producto_id ?? x.nombre} style={{ padding: '12px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line}` : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <ProductIcon kind={x.tipo} size={isMobile ? 40 : 52} theme={T}/>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: T.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.nombre}</div>
+                      <div style={{ fontSize: 12, color: T.ink3 }}>{x.unidad} · {fmt(x.precio_unitario)} c/u</div>
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.display, minWidth: 70, textAlign: 'right' }}>{fmt(x.subtotal)}</div>
-                    <button onClick={() => quitar(x.producto_id ?? x.nombre)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: T.ink3, fontSize: 18, lineHeight: 1 }}>×</button>
+                    <button onClick={() => quitar(x.producto_id ?? x.nombre)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: T.ink3, fontSize: 18, lineHeight: 1, flexShrink: 0 }}>×</button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingLeft: isMobile ? 52 : 64 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: T.bg, borderRadius: 8, padding: '4px 10px', border: `1px solid ${T.line}` }}>
+                      <button onClick={() => x.cantidad <= 1 ? quitar(x.producto_id ?? x.nombre) : actualizarCantidad(x.producto_id ?? x.nombre, x.cantidad - 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: T.ink, fontWeight: 700, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: T.ink, minWidth: 28, textAlign: 'center' }}>{x.cantidad}</span>
+                      <button onClick={() => actualizarCantidad(x.producto_id ?? x.nombre, x.cantidad + 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: T.ink, fontWeight: 700, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(x.subtotal)}</div>
                   </div>
                 </div>
               ))}
@@ -320,7 +324,7 @@ export function ScreenCheckout({ theme: T }) {
             {/* ── Método de pago ───────────────────────── */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>💳 Método de pago</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 10 }}>
                 {PAY_METHODS.map(({ id, l, sub, Logo }) => {
                   const sel = metodo === id;
                   return (
@@ -361,7 +365,7 @@ export function ScreenCheckout({ theme: T }) {
           </div>
 
           {/* Right column — resumen */}
-          <div style={{ position: 'sticky', top: 72 }}>
+          <div style={isMobile ? {} : { position: 'sticky', top: 72 }}>
             <div style={{ background: '#fff', borderRadius: 16, border: `1px solid ${T.line}`, overflow: 'hidden' }}>
               <div style={{ background: T.primary, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -448,6 +452,29 @@ export function ScreenCheckout({ theme: T }) {
           </div>
         </div>
       </div>
+
+      {/* Barra inferior fija en móvil */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed', bottom: 60, left: 0, right: 0, zIndex: 40,
+          background: '#fff', borderTop: `1px solid ${T.line}`,
+          padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
+          boxShadow: '0 -4px 20px rgba(0,0,0,.08)',
+        }}>
+          <div>
+            <div style={{ fontSize: 11, color: T.ink3, fontWeight: 600 }}>Total</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: T.ink, fontFamily: T.display }}>{fmt(totalConDespacho)}</div>
+          </div>
+          <button onClick={handleConfirmar} disabled={loading} style={{
+            flex: 1, padding: '14px',
+            background: loading ? T.ink3 : T.accent, color: '#fff',
+            border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15,
+            cursor: loading ? 'not-allowed' : 'pointer', fontFamily: T.display,
+          }}>
+            {loading ? 'Registrando...' : 'Confirmar pedido'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
