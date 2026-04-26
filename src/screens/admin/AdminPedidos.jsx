@@ -10,6 +10,12 @@ const ESTADO_BADGE  = { pendiente: 'neutral', confirmado: 'primary', cargando: '
 const ESTADO_LABEL  = { pendiente: 'Pendiente', confirmado: 'Confirmado', cargando: 'Cargando', en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado' };
 const NEXT_ESTADO   = { pendiente: 'confirmado', confirmado: 'cargando', cargando: 'en_ruta', en_ruta: 'entregado' };
 const NEXT_LABEL    = { pendiente: 'Confirmar', confirmado: 'Cargar', cargando: 'Despachar', en_ruta: 'Entregar' };
+const WA_MSG = {
+  confirmado: (n) => `✅ Hola! Tu pedido *${n}* de JBT DIBO ha sido *confirmado*. Lo estamos preparando para el despacho. ¡Gracias por tu confianza!`,
+  cargando:   (n) => `⏳ Tu pedido *${n}* de JBT DIBO está siendo *cargado* en el vehículo. Pronto saldrá para tu dirección.`,
+  en_ruta:    (n) => `🚛 ¡Tu pedido *${n}* de JBT DIBO está *en camino*! El volquete ya está dirigiéndose a tu dirección. Prepárate para recibirlo.`,
+  entregado:  (n) => `✅ Tu pedido *${n}* de JBT DIBO ha sido *entregado*. ¡Muchas gracias por elegirnos! Ante cualquier consulta, estamos a tu disposición.`,
+};
 const FILTROS       = ['todos', 'pendiente', 'confirmado', 'cargando', 'en_ruta', 'entregado'];
 const FILTRO_LABEL  = { todos: 'Todos', ...ESTADO_LABEL };
 
@@ -42,8 +48,9 @@ function NuevoPedidoModal({ T, onSave, onClose }) {
   const items = lineas.map(l => {
     const prod = productos.find(p => p.id === l.productoId);
     if (!prod) return null;
+    const precio = Number(prod.precio ?? prod.precio_unitario ?? 0);
     const cantidad = Number(l.cantidad) || 1;
-    return { producto_id: prod.id, nombre: prod.nombre, cantidad, precio_unitario: prod.precio_unitario, subtotal: prod.precio_unitario * cantidad };
+    return { producto_id: prod.id, nombre: prod.nombre, cantidad, precio_unitario: precio, subtotal: precio * cantidad };
   }).filter(Boolean);
 
   const total = items.reduce((s, i) => s + i.subtotal, 0);
@@ -107,7 +114,7 @@ function NuevoPedidoModal({ T, onSave, onClose }) {
                 >
                   <option value="">Seleccionar...</option>
                   {productos.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} — {fmt(p.precio_unitario)}/{p.unidad}</option>
+                    <option key={p.id} value={p.id}>{p.nombre} — {fmt(p.precio ?? p.precio_unitario ?? 0)}/{p.unidad}</option>
                   ))}
                 </select>
                 <input
@@ -164,6 +171,7 @@ export function AdminPedidos({ theme: T }) {
   const [selected, setSelected] = useState(null);
   const [updating, setUpdating] = useState(null);
   const [modalNuevo, setModalNuevo] = useState(location.state?.nuevo === true);
+  const [waPending, setWaPending] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -180,8 +188,13 @@ export function AdminPedidos({ theme: T }) {
     setUpdating(pedido.id);
     const { data } = await actualizarEstadoPedido(pedido.id, next);
     if (data) {
-      setPedidos(prev => prev.map(p => p.id === pedido.id ? { ...p, estado: next } : p));
-      if (selected?.id === pedido.id) setSelected({ ...selected, estado: next });
+      const updated = { ...pedido, estado: next };
+      setPedidos(prev => prev.map(p => p.id === pedido.id ? updated : p));
+      if (selected?.id === pedido.id) setSelected(updated);
+      const phone = pedido.profiles?.celular;
+      if (phone && WA_MSG[next]) {
+        setWaPending({ numero: pedido.numero, phone, estado: next });
+      }
     }
     setUpdating(null);
   }
@@ -242,7 +255,7 @@ export function AdminPedidos({ theme: T }) {
                   const kind = primerItem?.productos?.tipo || 'arena';
                   const isSelected = selected?.id === p.id;
                   return (
-                    <tr key={p.id} onClick={() => setSelected(isSelected ? null : p)}
+                    <tr key={p.id} onClick={() => { setSelected(isSelected ? null : p); setWaPending(null); }}
                       style={{ borderBottom: `1px solid ${T.line2}`, background: isSelected ? T.primarySoft : 'transparent', cursor: 'pointer', transition: 'background .1s' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.ink }}>{p.numero}</div>
@@ -300,6 +313,11 @@ export function AdminPedidos({ theme: T }) {
                 <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Cliente</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{selected.profiles?.nombre || 'Cliente'}</div>
                 {selected.profiles?.empresa && <div style={{ fontSize: 11, color: T.ink3 }}>{selected.profiles.empresa}</div>}
+                {selected.profiles?.celular && (
+                  <div style={{ fontSize: 11, color: T.ink3, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    📱 {selected.profiles.celular}
+                  </div>
+                )}
               </div>
 
               <div style={{ background: T.chip, borderRadius: 10, padding: 12, marginBottom: 12 }}>
@@ -342,6 +360,29 @@ export function AdminPedidos({ theme: T }) {
                   style={{ width: '100%', padding: '12px 0', background: T.accent, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: updating === selected.id ? .6 : 1 }}>
                   {updating === selected.id ? 'Actualizando...' : `→ ${NEXT_LABEL[selected.estado]}`}
                 </button>
+              )}
+
+              {waPending && waPending.numero === selected.numero && (
+                <div style={{ marginTop: 12, background: '#E7F5E9', borderRadius: 12, padding: 14, border: '1.5px solid #4CAF50' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#2E7D32', marginBottom: 8 }}>
+                    Estado actualizado — Notificar al cliente
+                  </div>
+                  <div style={{ fontSize: 11, color: '#388E3C', marginBottom: 10, lineHeight: 1.5, background: '#C8E6C9', borderRadius: 8, padding: '8px 10px' }}>
+                    {WA_MSG[waPending.estado]?.(waPending.numero)}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <a
+                      href={`https://wa.me/51${waPending.phone.replace(/\D/g, '')}?text=${encodeURIComponent(WA_MSG[waPending.estado]?.(waPending.numero) || '')}`}
+                      target="_blank" rel="noreferrer"
+                      style={{ flex: 1, display: 'block', padding: '10px 0', background: '#25D366', color: '#fff', borderRadius: 10, textAlign: 'center', fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
+                      📲 Enviar por WhatsApp
+                    </a>
+                    <button onClick={() => setWaPending(null)}
+                      style={{ padding: '10px 14px', borderRadius: 10, border: 'none', background: T.chip, cursor: 'pointer', fontSize: 12, color: T.ink3, fontWeight: 700 }}>
+                      Omitir
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}
