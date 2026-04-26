@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { useCart } from './context/CartContext';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { LandingScreen } from './screens/auth/LandingScreen';
 import { TOKENS } from './tokens';
-import { Phone } from './components/UI';
 import { ScreenHome } from './screens/client/ScreenHome';
 import { ScreenDetail } from './screens/client/ScreenDetail';
 import { ScreenQuote } from './screens/client/ScreenQuote';
@@ -19,19 +19,11 @@ import { AdminPedidos } from './screens/admin/AdminPedidos';
 
 const T = TOKENS.cantera;
 
-function MobileWrapper({ children }) {
-  return (
-    <div style={{ minHeight: 'calc(100vh - 52px)', background: '#f0eee9', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-      <Phone theme={T}>{children}</Phone>
-    </div>
-  );
-}
-
-// Solo visible para clientes — sin acceso al panel admin
 function ClientTopNav({ themeKey, setThemeKey }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut } = useAuth();
+  const { totalItems } = useCart();
   const [showThemes, setShowThemes] = useState(false);
 
   const isClient = location.pathname.startsWith('/cliente');
@@ -45,7 +37,7 @@ function ClientTopNav({ themeKey, setThemeKey }) {
       display: 'flex', alignItems: 'center',
       padding: '0 24px', height: 52, fontFamily: T.body,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 28, cursor: 'pointer' }} onClick={() => navigate('/cliente/home')}>
         <div style={{ width: 28, height: 28, borderRadius: 7, background: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 11, fontFamily: T.display }}>JB</div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, fontFamily: T.display, lineHeight: 1.2 }}>JBT DIBO S.A.C</div>
@@ -55,7 +47,7 @@ function ClientTopNav({ themeKey, setThemeKey }) {
 
       <div style={{ display: 'flex', gap: 4 }}>
         {[
-          { path: '/cliente/home', label: 'App Cliente', icon: '📱', active: isClient },
+          { path: '/cliente/home', label: 'Tienda', icon: '🏠', active: isClient },
           { path: '/b2b', label: 'Ferretería B2B', icon: '🏪', active: isB2B },
         ].map((s) => (
           <button key={s.path} onClick={() => navigate(s.path)} style={{
@@ -71,8 +63,31 @@ function ClientTopNav({ themeKey, setThemeKey }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+        {/* Cart button */}
+        <button onClick={() => navigate('/cliente/checkout')} style={{
+          position: 'relative', padding: '6px 14px', borderRadius: 8, border: `1px solid ${T.line}`,
+          background: totalItems > 0 ? T.primarySoft : '#fff', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6, fontFamily: T.body, fontSize: 13, fontWeight: 600,
+          color: totalItems > 0 ? T.primary : T.ink3,
+        }}>
+          🛒 Carrito
+          {totalItems > 0 && (
+            <span style={{ background: T.accent, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 800, padding: '1px 6px', minWidth: 18, textAlign: 'center' }}>{totalItems}</span>
+          )}
+        </button>
+
+        {/* Pedidos */}
+        <button onClick={() => navigate('/cliente/pedidos')} style={{
+          padding: '6px 14px', borderRadius: 8, border: `1px solid ${T.line}`,
+          background: location.pathname === '/cliente/pedidos' ? T.primarySoft : '#fff',
+          color: location.pathname === '/cliente/pedidos' ? T.primary : T.ink3,
+          cursor: 'pointer', fontFamily: T.body, fontSize: 13, fontWeight: 600,
+        }}>
+          Mis pedidos
+        </button>
+
         {profile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: T.primary }}>
               {profile.nombre?.charAt(0)?.toUpperCase() || '?'}
             </div>
@@ -87,32 +102,6 @@ function ClientTopNav({ themeKey, setThemeKey }) {
         <button onClick={signOut} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${T.line}`, background: '#fff', fontSize: 12, fontWeight: 600, color: T.ink3, cursor: 'pointer', fontFamily: T.body }}>
           Salir
         </button>
-        <div style={{ position: 'relative' }}>
-          <button onClick={() => setShowThemes(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, border: '1px solid #DCE4DF', background: '#fff', cursor: 'pointer', fontFamily: T.body, fontSize: 12 }}>
-            <div style={{ display: 'flex', gap: 2 }}>
-              <div style={{ width: 8, height: 14, borderRadius: 2, background: T.primary }}/>
-              <div style={{ width: 8, height: 14, borderRadius: 2, background: T.accent }}/>
-            </div>
-            <span style={{ color: T.ink, fontWeight: 600 }}>{T.name}</span>
-          </button>
-          {showThemes && (
-            <>
-              <div onClick={() => setShowThemes(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }}/>
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', borderRadius: 10, padding: 6, boxShadow: '0 8px 24px rgba(0,0,0,.12)', minWidth: 180, zIndex: 100 }}>
-                {Object.entries(TOKENS).map(([k, t]) => (
-                  <div key={k} onClick={() => { setThemeKey(k); setShowThemes(false); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, cursor: 'pointer', background: k === themeKey ? '#f5f5f5' : 'transparent' }}>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <div style={{ width: 10, height: 16, borderRadius: 2, background: t.primary }}/>
-                      <div style={{ width: 10, height: 16, borderRadius: 2, background: t.accent }}/>
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0F1A17' }}>{t.name}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
       </div>
     </nav>
   );
@@ -132,7 +121,6 @@ function AppContent() {
   const { user, profile, loading } = useAuth();
 
   const isAdmin = location.pathname.startsWith('/admin');
-  const isAuth = location.pathname === '/login' || location.pathname === '/register';
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1410', fontFamily: T.body }}>
@@ -145,7 +133,6 @@ function AppContent() {
     </div>
   );
 
-  // Rutas públicas (sin sesión requerida)
   if (!user) {
     return (
       <Routes>
@@ -157,7 +144,6 @@ function AppContent() {
     );
   }
 
-  // Admin → pantalla completa, sin TopNav de clientes
   if (isAdmin) {
     if (profile && profile.rol !== 'admin') return <Navigate to="/cliente/home" replace/>;
     return (
@@ -173,22 +159,21 @@ function AppContent() {
     );
   }
 
-  // Cliente / B2B → TopNav + Phone frame
   return (
-    <div style={{ minHeight: '100vh', background: '#f0eee9' }}>
+    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <ClientTopNav themeKey={themeKey} setThemeKey={setThemeKey}/>
       <div style={{ marginTop: 52 }}>
         <Routes>
           <Route path="/" element={<SmartRedirect/>}/>
           <Route path="/login" element={<SmartRedirect/>}/>
           <Route path="/register" element={<SmartRedirect/>}/>
-          <Route path="/cliente/home" element={<MobileWrapper><ScreenHome theme={T}/></MobileWrapper>}/>
-          <Route path="/cliente/detalle" element={<MobileWrapper><ScreenDetail theme={T}/></MobileWrapper>}/>
-          <Route path="/cliente/cotizador" element={<MobileWrapper><ScreenQuote theme={T}/></MobileWrapper>}/>
-          <Route path="/cliente/checkout" element={<MobileWrapper><ScreenCheckout theme={T}/></MobileWrapper>}/>
-          <Route path="/cliente/pedidos" element={<MobileWrapper><ScreenPedidos theme={T}/></MobileWrapper>}/>
-          <Route path="/cliente/tracking" element={<MobileWrapper><ScreenTracking theme={T}/></MobileWrapper>}/>
-          <Route path="/b2b" element={<MobileWrapper><ScreenFerreteria theme={T}/></MobileWrapper>}/>
+          <Route path="/cliente/home" element={<ScreenHome theme={T}/>}/>
+          <Route path="/cliente/detalle" element={<ScreenDetail theme={T}/>}/>
+          <Route path="/cliente/cotizador" element={<ScreenQuote theme={T}/>}/>
+          <Route path="/cliente/checkout" element={<ScreenCheckout theme={T}/>}/>
+          <Route path="/cliente/pedidos" element={<ScreenPedidos theme={T}/>}/>
+          <Route path="/cliente/tracking" element={<ScreenTracking theme={T}/>}/>
+          <Route path="/b2b" element={<ScreenFerreteria theme={T}/>}/>
           <Route path="*" element={<SmartRedirect/>}/>
         </Routes>
       </div>

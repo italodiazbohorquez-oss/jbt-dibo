@@ -1,12 +1,11 @@
 import { I } from '../../components/Icons';
 import { Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
-import { TabBar } from '../client/TabBar';
 
 const quickActions = [
-  { i: 'refresh', l: 'Repetir pedido', sub: 'Últimos 30d' },
-  { i: 'doc', l: 'Facturas', sub: '3 pendientes' },
-  { i: 'chart', l: 'Mis compras', sub: 'Reportes' },
+  { i: 'refresh', l: 'Repetir pedido', sub: 'Últimos 30 días', emoji: '🔄' },
+  { i: 'doc', l: 'Facturas', sub: '3 pendientes', emoji: '🧾' },
+  { i: 'chart', l: 'Mis compras', sub: 'Ver reportes', emoji: '📊' },
 ];
 
 const mayorista = [
@@ -18,71 +17,80 @@ const mayorista = [
 
 export function ScreenFerreteria({ theme: T }) {
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: T.bg }}>
-      <div style={{ background: T.ink, padding: '14px 16px 18px', color: '#fff', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 11, opacity: .65, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Ferretería</div>
-            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: T.display, marginTop: 2 }}>Ferretería El Sol · Surco</div>
+    <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
+      {/* Header */}
+      <div style={{ background: T.ink, padding: '32px 0 40px', color: '#fff' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
+            <div>
+              <div style={{ fontSize: 12, opacity: .65, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>Portal</div>
+              <div style={{ fontSize: 28, fontWeight: 900, fontFamily: T.display }}>Ferretería El Sol · Surco</div>
+              <div style={{ fontSize: 14, opacity: .7, marginTop: 4 }}>Canal mayorista B2B · RUC 20101234567</div>
+            </div>
+            <Badge theme={T} tone="accent">B2B MAYORISTA</Badge>
           </div>
-          <Badge theme={T} tone="accent">B2B</Badge>
-        </div>
 
-        <div style={{ background: `linear-gradient(135deg, ${T.primary} 0%, ${T.primaryDark} 100%)`, borderRadius: 14, padding: 14, marginTop: 14, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', right: -20, top: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }}/>
-          <div style={{ fontSize: 11, fontWeight: 700, opacity: .75, letterSpacing: '.06em', textTransform: 'uppercase' }}>Línea de crédito</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 2 }}>
-            <span style={{ fontSize: 24, fontWeight: 800, fontFamily: T.display, color: '#fff' }}>S/8,420</span>
-            <span style={{ fontSize: 12, opacity: .7 }}>de S/15,000</span>
-          </div>
-          <div style={{ height: 6, background: 'rgba(255,255,255,.15)', borderRadius: 4, marginTop: 8, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: '56%', background: T.accent, borderRadius: 4 }}/>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, opacity: .75 }}>
-            <span>Disponible</span>
-            <span>Vence 15 May · 30 días</span>
+          {/* Credit line card */}
+          <div style={{ background: `linear-gradient(135deg, ${T.primary} 0%, ${T.primaryDark} 100%)`, borderRadius: 20, padding: '20px 24px', marginTop: 24, position: 'relative', overflow: 'hidden', maxWidth: 480 }}>
+            <div style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }}/>
+            <div style={{ fontSize: 12, fontWeight: 700, opacity: .75, letterSpacing: '.06em', textTransform: 'uppercase' }}>Línea de crédito disponible</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6 }}>
+              <span style={{ fontSize: 32, fontWeight: 900, fontFamily: T.display }}>S/8,420</span>
+              <span style={{ fontSize: 14, opacity: .7 }}>de S/15,000</span>
+            </div>
+            <div style={{ height: 8, background: 'rgba(255,255,255,.2)', borderRadius: 4, marginTop: 12, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: '56%', background: T.accent, borderRadius: 4 }}/>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, opacity: .75 }}>
+              <span>56% utilizado</span>
+              <span>Vence 15 May · 30 días</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {quickActions.map((x, i) => {
-            const Ic = I[x.i];
-            return (
-              <div key={i} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, padding: 10, cursor: 'pointer' }}>
-                <Ic size={18} color={T.primary}/>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.ink, marginTop: 6 }}>{x.l}</div>
-                <div style={{ fontSize: 10, color: T.ink3 }}>{x.sub}</div>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
+        {/* Quick actions */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>
+          {quickActions.map((x, i) => (
+            <div key={i} style={{ background: '#fff', border: `1px solid ${T.line}`, borderRadius: 16, padding: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.08)'}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+            >
+              <div style={{ fontSize: 28 }}>{x.emoji}</div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{x.l}</div>
+                <div style={{ fontSize: 12, color: T.ink3, marginTop: 2 }}>{x.sub}</div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 18, marginBottom: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Precio mayorista</div>
-          <Badge theme={T} tone="primary">−18%</Badge>
+        {/* Products */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Precio mayorista</div>
+          <Badge theme={T} tone="primary">−18% vs precio público</Badge>
         </div>
 
-        {mayorista.map((x, i) => (
-          <div key={i} style={{ background: T.surface, borderRadius: 12, border: `1px solid ${T.line}`, padding: 10, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ProductIcon kind={x.k} size={44} theme={T}/>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{x.n}</div>
-              <div style={{ fontSize: 10, color: T.ink3, marginTop: 2 }}>Mín. {x.min}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {mayorista.map((x, i) => (
+            <div key={i} style={{ background: '#fff', borderRadius: 16, border: `1px solid ${T.line}`, padding: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <ProductIcon kind={x.k} size={56} theme={T}/>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>{x.n}</div>
+                <div style={{ fontSize: 13, color: T.ink3, marginTop: 3 }}>Compra mínima: {x.min}</div>
+              </div>
+              <div style={{ textAlign: 'right', marginRight: 16 }}>
+                <div style={{ fontSize: 12, color: T.ink3, textDecoration: 'line-through' }}>S/{x.pu}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: T.primary, fontFamily: T.display }}>S/{x.pm}</div>
+              </div>
+              <button style={{ width: 44, height: 44, borderRadius: 12, background: T.primary, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 24, color: '#fff' }}>
+                +
+              </button>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, color: T.ink3, textDecoration: 'line-through' }}>S/{x.pu}</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: T.primary, fontFamily: T.display }}>S/{x.pm}</div>
-            </div>
-            <button style={{ width: 32, height: 32, borderRadius: 8, background: T.primary, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <I.plus size={16} color="#fff"/>
-            </button>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-
-      <TabBar active="home" T={T}/>
     </div>
   );
 }

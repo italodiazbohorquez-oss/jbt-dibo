@@ -1,99 +1,118 @@
-import { useNavigate } from 'react-router-dom';
-import { I } from '../../components/Icons';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Badge, BtnPrimary } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
+import { useCart } from '../../context/CartContext';
 
 const volumes = [
-  { vol: '5 m³', price: 'S/375', sel: false, sub: 'Volquete chico' },
-  { vol: '10 m³', price: 'S/750', sel: true, sub: 'Volquete estándar' },
-  { vol: '15 m³', price: 'S/1,125', sel: false, sub: 'Volquete grande' },
+  { vol: '5 m³', price: 375, sub: 'Volquete chico' },
+  { vol: '10 m³', price: 750, sub: 'Volquete estándar' },
+  { vol: '15 m³', price: 1125, sub: 'Volquete grande' },
 ];
 
 export function ScreenDetail({ theme: T }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const producto = location.state?.producto;
+  const { agregar } = useCart();
+  const [volIdx, setVolIdx] = useState(1);
+  const [qty, setQty] = useState(1);
+  const [agregado, setAgregado] = useState(false);
+
+  const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
+
+  function handleAgregar() {
+    if (producto) {
+      agregar(producto, qty);
+    }
+    setAgregado(true);
+    setTimeout(() => setAgregado(false), 1500);
+  }
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: T.bg }}>
-      <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div onClick={() => navigate(-1)} style={{ width: 36, height: 36, borderRadius: '50%', background: T.surface, border: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <I.chevL size={18} color={T.ink}/>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {[I.heart, I.dots].map((Ic, i) => (
-            <div key={i} style={{ width: 36, height: 36, borderRadius: '50%', background: T.surface, border: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <Ic size={16} color={T.ink}/>
+    <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
+        <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: T.ink3, marginBottom: 20, fontFamily: T.body }}>← Volver</button>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 40, alignItems: 'start' }}>
+          {/* Product image */}
+          <div style={{ background: T.primarySoft, borderRadius: 24, padding: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${T.line}` }}>
+            <ProductIcon kind={producto?.tipo || 'arena'} size={160} theme={T}/>
+          </div>
+
+          {/* Info */}
+          <div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <Badge theme={T} tone="primary">AGREGADO</Badge>
+              <Badge theme={T} tone="ok">EN STOCK</Badge>
             </div>
-          ))}
-        </div>
-      </div>
+            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: T.ink, fontFamily: T.display, lineHeight: 1.1 }}>
+              {producto?.nombre || 'Arena gruesa lavada'}
+            </h1>
+            <div style={{ fontSize: 14, color: T.ink3, marginTop: 8 }}>
+              {producto?.descripcion || 'Origen: Río Lurín · Granulometría: 0–5mm'}
+            </div>
 
-      <div style={{ padding: '8px 20px 16px', display: 'flex', justifyContent: 'center', background: T.primarySoft, margin: '0 16px', borderRadius: 18, flexShrink: 0 }}>
-        <div style={{ transform: 'scale(2.4)', padding: 30 }}>
-          <ProductIcon kind="arena" size={72} theme={T}/>
-        </div>
-      </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 20 }}>
+              <div style={{ fontSize: 40, fontWeight: 900, color: T.ink, fontFamily: T.display }}>{fmt(producto?.precio_unitario || 75)}</div>
+              <div style={{ fontSize: 15, color: T.ink3 }}>/ {producto?.unidad || 'm³'} · IGV incluido</div>
+            </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 18px 80px' }}>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-          <Badge theme={T} tone="primary">AGREGADO</Badge>
-          <Badge theme={T} tone="ok">EN STOCK</Badge>
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: T.ink, fontFamily: T.display, letterSpacing: '-.02em', lineHeight: 1.1 }}>Arena gruesa lavada</div>
-        <div style={{ fontSize: 13, color: T.ink3, marginTop: 4 }}>Origen: Río Lurín · Granulometría: 0–5mm</div>
-
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 16 }}>
-          <div style={{ fontSize: 30, fontWeight: 800, color: T.ink, fontFamily: T.display }}>S/75</div>
-          <div style={{ fontSize: 14, color: T.ink3 }}>/ m³ · IGV incluido</div>
-        </div>
-
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.ink2, marginBottom: 10 }}>Elige volumen de viaje</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {volumes.map((o, i) => (
-              <div key={i} style={{
-                background: o.sel ? T.primary : T.surface, color: o.sel ? '#fff' : T.ink,
-                borderRadius: 12, padding: '10px 8px', textAlign: 'center',
-                border: `1.5px solid ${o.sel ? T.primary : T.line}`, cursor: 'pointer',
-              }}>
-                <div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.display }}>{o.vol}</div>
-                <div style={{ fontSize: 9, opacity: .7, marginTop: 1 }}>{o.sub}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 3, color: o.sel ? '#fff' : T.accent }}>{o.price}</div>
+            {/* Volume selector */}
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink2, marginBottom: 10 }}>Elige volumen de viaje</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {volumes.map((o, i) => (
+                  <div key={i} onClick={() => setVolIdx(i)} style={{
+                    background: volIdx === i ? T.primary : '#fff',
+                    color: volIdx === i ? '#fff' : T.ink,
+                    borderRadius: 12, padding: '12px 16px', textAlign: 'center',
+                    border: `2px solid ${volIdx === i ? T.primary : T.line}`, cursor: 'pointer',
+                    minWidth: 100,
+                  }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, fontFamily: T.display }}>{o.vol}</div>
+                    <div style={{ fontSize: 10, opacity: .75, marginTop: 2 }}>{o.sub}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4, color: volIdx === i ? '#fff' : T.accent }}>{fmt(o.price)}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        <div style={{ marginTop: 22, background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, padding: 14 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: T.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <I.truck size={20} color={T.accentDark}/>
+            {/* Quantity */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden' }}>
+                <button onClick={() => setQty(q => Math.max(1, q - 1))} style={{ width: 44, height: 44, border: 'none', background: T.bg, cursor: 'pointer', fontSize: 20, color: T.ink }}>−</button>
+                <div style={{ width: 52, textAlign: 'center', fontWeight: 800, fontSize: 16, color: T.ink, fontFamily: T.display }}>{qty}</div>
+                <button onClick={() => setQty(q => q + 1)} style={{ width: 44, height: 44, border: 'none', background: T.bg, cursor: 'pointer', fontSize: 20, color: T.ink }}>+</button>
+              </div>
+              <button onClick={handleAgregar} style={{
+                flex: 1, padding: '14px 24px', background: agregado ? T.ok : T.accent,
+                color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 16,
+                cursor: 'pointer', fontFamily: T.display, transition: 'background .2s',
+              }}>
+                {agregado ? '✓ Agregado al carrito' : `Agregar · ${fmt(volumes[volIdx].price * qty)}`}
+              </button>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Despacho en 24-48h</div>
-              <div style={{ fontSize: 11, color: T.ink3 }}>Lima Sur · Envío incluido +S/500</div>
-            </div>
-            <I.chevR size={18} color={T.ink3}/>
-          </div>
-          <div style={{ height: 1, background: T.line, margin: '12px 0' }}/>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <I.shield size={20} color={T.primary}/>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Garantía de material</div>
-              <div style={{ fontSize: 11, color: T.ink3 }}>Devolución si no cumple calidad</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div style={{ padding: '12px 16px 14px', background: T.surface, borderTop: `1px solid ${T.line}`, display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: T.chip, borderRadius: 10, padding: 4 }}>
-          <button style={{ width: 30, height: 30, borderRadius: 8, background: T.surface, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.minus size={16} color={T.ink}/></button>
-          <div style={{ minWidth: 28, textAlign: 'center', fontWeight: 800, color: T.ink, fontFamily: T.display }}>1</div>
-          <button style={{ width: 30, height: 30, borderRadius: 8, background: T.surface, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.plus size={16} color={T.ink}/></button>
+            {/* Info cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 28 }}>
+              <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${T.line}`, padding: 16, display: 'flex', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: T.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>🚛</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Despacho en 24-48h</div>
+                  <div style={{ fontSize: 11, color: T.ink3 }}>Lima Sur · Envío gratis +S/500</div>
+                </div>
+              </div>
+              <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${T.line}`, padding: 16, display: 'flex', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>🛡️</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Garantía de calidad</div>
+                  <div style={{ fontSize: 11, color: T.ink3 }}>Devolución si no cumple</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <BtnPrimary theme={T} full style={{ flex: 1 }} icon={I.cart}
-          onClick={() => navigate('/cliente/checkout')}>Agregar · S/750</BtnPrimary>
       </div>
     </div>
   );

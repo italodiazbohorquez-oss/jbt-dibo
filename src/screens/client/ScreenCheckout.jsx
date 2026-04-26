@@ -16,13 +16,14 @@ const PAY_METHODS = [
 
 export function ScreenCheckout({ theme: T }) {
   const navigate = useNavigate();
-  const { items, total, vaciar } = useCart();
+  const { items, total, vaciar, actualizarCantidad, quitar } = useCart();
   const { user } = useAuth();
   const [metodo, setMetodo] = useState('yape');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
+  const totalConDespacho = total >= 500 ? total : total + 50;
 
   async function handleConfirmar() {
     if (!user || items.length === 0) return;
@@ -55,11 +56,11 @@ export function ScreenCheckout({ theme: T }) {
 
   if (items.length === 0) {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: T.bg, padding: 32 }}>
-        <I.cart size={48} color={T.ink3}/>
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.ink, marginTop: 12 }}>Tu carrito está vacío</div>
-        <div style={{ fontSize: 13, color: T.ink3, marginTop: 4, textAlign: 'center' }}>Agrega productos desde la pantalla principal</div>
-        <button onClick={() => navigate('/cliente/home')} style={{ marginTop: 20, padding: '10px 24px', background: T.accent, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+      <div style={{ minHeight: 'calc(100vh - 52px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: T.bg, fontFamily: T.body }}>
+        <div style={{ fontSize: 64 }}>🛒</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: T.ink, marginTop: 16, fontFamily: T.display }}>Tu carrito está vacío</div>
+        <div style={{ fontSize: 14, color: T.ink3, marginTop: 8 }}>Agrega productos desde la tienda</div>
+        <button onClick={() => navigate('/cliente/home')} style={{ marginTop: 24, padding: '12px 32px', background: T.accent, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: T.body }}>
           Ver productos
         </button>
       </div>
@@ -67,122 +68,155 @@ export function ScreenCheckout({ theme: T }) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: T.bg }}>
-      <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12, background: T.surface, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <div onClick={() => navigate(-1)} style={{ cursor: 'pointer' }}>
-          <I.chevL size={20} color={T.ink}/>
-        </div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Confirmar pedido</div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 90px' }}>
-        <div style={{ background: T.surface, borderRadius: 14, padding: 12, border: `1px solid ${T.line}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 9, background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <I.pin size={18} color={T.primary}/>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Entregar en Obra Las Flores</div>
-              <div style={{ fontSize: 11, color: T.ink3 }}>Mz B Lt 14, Villa El Salvador · Ref. portón azul</div>
-            </div>
-            <I.chevR size={18} color={T.ink3}/>
-          </div>
+    <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+          <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, color: T.ink3, fontSize: 20 }}>←</button>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Confirmar pedido</h1>
         </div>
 
-        <div style={{ background: T.surface, borderRadius: 14, padding: 12, border: `1px solid ${T.line}`, marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: T.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <I.cal size={18} color={T.accentDark}/>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
-              Mañana · {new Date(Date.now() + 86400000).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'long' })}
-            </div>
-            <div style={{ fontSize: 11, color: T.ink3 }}>Ventana: 8:00 AM – 12:00 PM</div>
-          </div>
-          <I.chevR size={18} color={T.ink3}/>
-        </div>
-
-        <div style={{ marginTop: 18, fontSize: 12, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-          Tu pedido ({items.length} {items.length === 1 ? 'producto' : 'productos'})
-        </div>
-        <div style={{ background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, marginTop: 8 }}>
-          {items.map((x, i, arr) => (
-            <div key={x.producto_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderBottom: i < arr.length - 1 ? `1px solid ${T.line2}` : 'none' }}>
-              <ProductIcon kind={x.tipo} size={44} theme={T}/>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{x.nombre}</div>
-                <div style={{ fontSize: 11, color: T.ink3 }}>{x.cantidad} {x.unidad}</div>
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(x.subtotal)}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 18, fontSize: 12, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em' }}>Método de pago</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
-          {PAY_METHODS.map((m, i) => {
-            const sel = metodo === m.id;
-            const bgColor = m.color || [T.primary, T.ink, T.accent, T.ok][i];
-            return (
-              <div key={m.id} onClick={() => setMetodo(m.id)}
-                style={{ background: T.surface, border: `1.5px solid ${sel ? T.primary : T.line}`, borderRadius: 12, padding: 10, display: 'flex', alignItems: 'center', gap: 8, position: 'relative', cursor: 'pointer' }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: bgColor, color: '#fff', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontFamily: T.display }}>{m.logo}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>{m.l}</div>
-                  <div style={{ fontSize: 10, color: T.ink3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.sub}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24, alignItems: 'start' }}>
+          {/* Left column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Delivery info */}
+            <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Entrega</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📍</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>Obra Las Flores, Mz B Lt 14</div>
+                  <div style={{ fontSize: 12, color: T.ink3 }}>Villa El Salvador · Ref. portón azul</div>
                 </div>
-                {sel && <div style={{ position: 'absolute', top: 6, right: 6, width: 14, height: 14, borderRadius: '50%', background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><I.check size={10} color="#fff"/></div>}
               </div>
-            );
-          })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: T.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📅</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
+                    Mañana · {new Date(Date.now() + 86400000).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </div>
+                  <div style={{ fontSize: 12, color: T.ink3 }}>Ventana: 8:00 AM – 12:00 PM</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Products */}
+            <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>
+                Tu pedido ({items.length} {items.length === 1 ? 'producto' : 'productos'})
+              </div>
+              {items.map((x, i, arr) => (
+                <div key={x.producto_id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line}` : 'none' }}>
+                  <ProductIcon kind={x.tipo} size={52} theme={T}/>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>{x.nombre}</div>
+                    <div style={{ fontSize: 13, color: T.ink3 }}>{x.unidad} · {fmt(x.precio_unitario)} c/u</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: T.bg, borderRadius: 8, padding: '4px 8px', border: `1px solid ${T.line}` }}>
+                      <button onClick={() => x.cantidad <= 1 ? quitar(x.producto_id) : actualizarCantidad(x.producto_id, x.cantidad - 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, minWidth: 24, textAlign: 'center' }}>{x.cantidad}</span>
+                      <button onClick={() => actualizarCantidad(x.producto_id, x.cantidad + 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.display, minWidth: 70, textAlign: 'right' }}>{fmt(x.subtotal)}</div>
+                    <button onClick={() => quitar(x.producto_id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: T.ink3, fontSize: 18, lineHeight: 1 }}>×</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Payment method */}
+            <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Método de pago</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                {PAY_METHODS.map((m, i) => {
+                  const sel = metodo === m.id;
+                  const bgColor = m.color || [T.primary, T.ink, T.accent, T.ok][i];
+                  return (
+                    <div key={m.id} onClick={() => setMetodo(m.id)} style={{
+                      border: `2px solid ${sel ? T.primary : T.line}`, borderRadius: 12, padding: 14,
+                      display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                      background: sel ? T.primarySoft : '#fff', transition: 'all .15s',
+                    }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 9, background: bgColor, color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{m.logo}</div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: sel ? T.primary : T.ink }}>{m.l}</div>
+                        <div style={{ fontSize: 11, color: T.ink3 }}>{m.sub}</div>
+                      </div>
+                      {sel && <div style={{ marginLeft: 'auto', width: 18, height: 18, borderRadius: '50%', background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Right column — summary */}
+          <div style={{ position: 'sticky', top: 72 }}>
+            <div style={{ background: '#fff', borderRadius: 16, border: `1px solid ${T.line}`, overflow: 'hidden' }}>
+              {/* Receipt header */}
+              <div style={{ background: T.primary, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#fff', fontWeight: 900, fontSize: 13 }}>JB</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', fontFamily: T.display }}>JBT DIBO S.A.C</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.7)' }}>RUC: 20615017770</div>
+                </div>
+                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>Boleta de venta</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)' }}>{new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                </div>
+              </div>
+
+              <div style={{ padding: 20 }}>
+                {items.map(x => (
+                  <div key={x.producto_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: T.ink2, padding: '4px 0' }}>
+                    <span style={{ flex: 1, marginRight: 8 }}>{x.nombre} ×{x.cantidad}</span>
+                    <span style={{ fontWeight: 600, color: T.ink }}>{fmt(x.subtotal)}</span>
+                  </div>
+                ))}
+                <div style={{ height: 1, background: T.line, margin: '12px 0' }}/>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.ink2, padding: '4px 0' }}>
+                  <span>Subtotal</span>
+                  <span style={{ fontWeight: 600, color: T.ink }}>{fmt(total)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.ink2, padding: '4px 0' }}>
+                  <span>Despacho</span>
+                  <span style={{ fontWeight: 600, color: total >= 500 ? T.ok : T.ink }}>{total >= 500 ? 'Gratis' : fmt(50)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.ink2, padding: '4px 0' }}>
+                  <span>IGV (18%)</span>
+                  <span style={{ fontWeight: 600, color: T.ink }}>Incluido</span>
+                </div>
+                <div style={{ height: 2, background: T.line, margin: '12px 0' }}/>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0' }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>Total</span>
+                  <span style={{ fontSize: 28, fontWeight: 900, color: T.ink, fontFamily: T.display }}>{fmt(totalConDespacho)}</span>
+                </div>
+
+                {total < 500 && (
+                  <div style={{ background: T.accentSoft, borderRadius: 10, padding: '10px 12px', marginTop: 12, fontSize: 12, color: T.accentDark, fontWeight: 600 }}>
+                    Agrega {fmt(500 - total)} más para despacho gratis
+                  </div>
+                )}
+
+                {error && (
+                  <div style={{ background: '#FCE7E2', borderRadius: 10, padding: '10px 12px', marginTop: 12, fontSize: 13, color: '#C0392B', fontWeight: 600 }}>
+                    {error}
+                  </div>
+                )}
+
+                <button onClick={handleConfirmar} disabled={loading} style={{
+                  width: '100%', marginTop: 20, padding: '14px', background: loading ? T.ink3 : T.accent,
+                  color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 16,
+                  cursor: loading ? 'not-allowed' : 'pointer', fontFamily: T.display,
+                }}>
+                  {loading ? 'Registrando...' : `Confirmar pedido`}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div style={{ background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, padding: 12, marginTop: 16, overflow: 'hidden' }}>
-          {/* Encabezado comprobante */}
-          <div style={{ background: T.primarySoft, borderRadius: 10, padding: '10px 12px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: 11, fontFamily: T.display }}>JB</span>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: T.primary, fontFamily: T.display }}>JBT DIBO S.A.C</div>
-              <div style={{ fontSize: 10, color: T.ink3, fontFamily: T.mono }}>RUC: 20615017770</div>
-            </div>
-            <div style={{ marginLeft: 'auto', fontSize: 10, color: T.ink3, textAlign: 'right' }}>
-              <div style={{ fontWeight: 700 }}>Boleta de venta</div>
-              <div>{new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13, color: T.ink2 }}>
-            <span>Subtotal</span>
-            <span style={{ fontWeight: 700, color: T.ink }}>{fmt(total)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13, color: T.ink2 }}>
-            <span>Despacho</span>
-            <span style={{ fontWeight: 700, color: total >= 500 ? T.ok : T.ink }}>{total >= 500 ? 'Gratis' : fmt(50)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13, color: T.ink2 }}>
-            <span>IGV (18%)</span>
-            <span style={{ fontWeight: 700, color: T.ink }}>Incluido</span>
-          </div>
-          <div style={{ height: 1, background: T.line, margin: '8px 0' }}/>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>Total a pagar</span>
-            <span style={{ fontSize: 24, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(total >= 500 ? total : total + 50)}</span>
-          </div>
-        </div>
-
-        {error && (
-          <div style={{ background: '#FCE7E2', borderRadius: 10, padding: '10px 14px', marginTop: 12, fontSize: 13, color: T.danger, fontWeight: 600 }}>
-            {error}
-          </div>
-        )}
-      </div>
-
-      <div style={{ padding: '12px 16px 14px', background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <BtnPrimary theme={T} full icon={loading ? null : I.shield} onClick={handleConfirmar} disabled={loading}>
-          {loading ? 'Registrando pedido...' : `Confirmar pedido · ${fmt(total >= 500 ? total : total + 50)}`}
-        </BtnPrimary>
       </div>
     </div>
   );

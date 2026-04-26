@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { I } from '../../components/Icons';
-import { BtnPrimary, BtnSecondary } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 
 const elementTypes = [
@@ -26,83 +25,90 @@ const results = [
 export function ScreenQuote({ theme: T }) {
   const navigate = useNavigate();
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: T.bg }}>
-      <div style={{ background: T.primary, padding: '14px 16px 24px', color: '#fff', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div onClick={() => navigate(-1)} style={{ cursor: 'pointer' }}>
-            <I.chevL size={20} color="#fff"/>
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>Cotizar por obra</div>
+    <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
+      <div style={{ background: T.primary, padding: '32px 0 40px' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 6 }}>Herramienta</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', fontFamily: T.display }}>Cotizador de obra</div>
+          <div style={{ fontSize: 15, color: 'rgba(255,255,255,.75)', marginTop: 6 }}>Calculamos las cantidades y precios para tu proyecto</div>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, fontFamily: T.display, letterSpacing: '-.02em', lineHeight: 1.2 }}>¿Cuánto material necesitas?</div>
-        <div style={{ fontSize: 13, opacity: .8, marginTop: 4 }}>Te calculamos cantidades y precios para tu obra.</div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 80px' }}>
-        <div style={{ marginTop: -8, background: T.surface, borderRadius: 16, padding: 14, border: `1px solid ${T.line}`, boxShadow: '0 4px 12px -8px rgba(0,0,0,.08)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em' }}>Tipo de elemento</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
-            {elementTypes.map((x, i) => {
-              const Ic = I[x.i];
-              return (
-                <div key={i} style={{ background: x.sel ? T.primary : T.surface, border: `1.5px solid ${x.sel ? T.primary : T.line}`, borderRadius: 12, padding: 12, cursor: 'pointer' }}>
-                  <Ic size={18} color={x.sel ? '#fff' : T.ink2}/>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: x.sel ? '#fff' : T.ink, marginTop: 6 }}>{x.l}</div>
-                  <div style={{ fontSize: 11, color: x.sel ? 'rgba(255,255,255,.75)' : T.ink3, marginTop: 1 }}>{x.sub}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
+          {/* Left: inputs */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ background: '#fff', borderRadius: 16, padding: 24, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 16 }}>Tipo de elemento</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {elementTypes.map((x, i) => {
+                  const Ic = I[x.i];
+                  return (
+                    <div key={i} style={{ background: x.sel ? T.primary : T.bg, border: `2px solid ${x.sel ? T.primary : T.line}`, borderRadius: 14, padding: 16, cursor: 'pointer' }}>
+                      {Ic && <Ic size={20} color={x.sel ? '#fff' : T.ink2}/>}
+                      <div style={{ fontSize: 15, fontWeight: 700, color: x.sel ? '#fff' : T.ink, marginTop: 8 }}>{x.l}</div>
+                      <div style={{ fontSize: 12, color: x.sel ? 'rgba(255,255,255,.75)' : T.ink3, marginTop: 2 }}>{x.sub}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-        <div style={{ background: T.surface, borderRadius: 16, padding: 14, border: `1px solid ${T.line}`, marginTop: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em' }}>Dimensiones de columna</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 10 }}>
-            {dims.map((x, i) => (
-              <div key={i} style={{ border: `1.5px solid ${T.line}`, borderRadius: 10, padding: '8px 10px' }}>
-                <div style={{ fontSize: 10, color: T.ink3, fontWeight: 600 }}>{x.l}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{x.v}</div>
-                  <div style={{ fontSize: 11, color: T.ink3 }}>{x.u}</div>
+            <div style={{ background: '#fff', borderRadius: 16, padding: 24, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 16 }}>Dimensiones de columna</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                {dims.map((x, i) => (
+                  <div key={i} style={{ border: `2px solid ${T.line}`, borderRadius: 12, padding: '12px 16px' }}>
+                    <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase' }}>{x.l}</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: T.ink, fontFamily: T.display }}>{x.v}</div>
+                      <div style={{ fontSize: 13, color: T.ink3 }}>{x.u}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, padding: '12px 16px', background: T.bg, borderRadius: 12, border: `1px solid ${T.line}` }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.ink2 }}># de columnas iguales</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', border: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 18 }}>−</button>
+                  <div style={{ minWidth: 28, textAlign: 'center', fontWeight: 900, fontSize: 18, fontFamily: T.display, color: T.ink }}>8</div>
+                  <button style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', border: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 18 }}>+</button>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, padding: '10px 12px', background: T.chip, borderRadius: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: T.ink2 }}># de columnas iguales</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button style={{ width: 26, height: 26, borderRadius: 6, background: T.surface, border: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.minus size={13} color={T.ink}/></button>
-              <div style={{ minWidth: 20, textAlign: 'center', fontWeight: 800, fontFamily: T.display }}>8</div>
-              <button style={{ width: 26, height: 26, borderRadius: 6, background: T.surface, border: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.plus size={13} color={T.ink}/></button>
+
+          {/* Right: results */}
+          <div style={{ position: 'sticky', top: 72 }}>
+            <div style={{ background: T.ink, borderRadius: 20, padding: 24, color: '#fff' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, opacity: .7, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 16 }}>Materiales estimados</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {results.map((x, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 12, borderBottom: i < 3 ? '1px solid rgba(255,255,255,.1)' : 'none' }}>
+                    <ProductIcon kind={x.k} size={40} theme={T}/>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{x.n}</div>
+                      <div style={{ fontSize: 12, opacity: .6, marginTop: 2 }}>{x.q}</div>
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 800, fontFamily: T.display }}>{x.p}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,.15)' }}>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>Total estimado</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: T.accent, fontFamily: T.display }}>S/2,718</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: T.body }}>
+                  Guardar
+                </button>
+                <button onClick={() => navigate('/cliente/checkout')} style={{ flex: 2, padding: '12px', background: T.accent, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: T.body }}>
+                  Agregar todo al pedido
+                </button>
+              </div>
             </div>
           </div>
         </div>
-
-        <div style={{ background: T.ink, borderRadius: 16, padding: 16, marginTop: 14, color: '#fff' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, opacity: .7, textTransform: 'uppercase', letterSpacing: '.08em' }}>Materiales estimados</div>
-          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {results.map((x, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 8, borderBottom: i < 3 ? '1px solid rgba(255,255,255,.1)' : 'none' }}>
-                <ProductIcon kind={x.k} size={34} theme={T}/>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{x.n}</div>
-                  <div style={{ fontSize: 11, opacity: .7 }}>{x.q}</div>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 800, fontFamily: T.display }}>{x.p}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,.15)' }}>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>Total estimado</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: T.accent, fontFamily: T.display }}>S/2,718</div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: '12px 16px 14px', background: T.surface, borderTop: `1px solid ${T.line}`, display: 'flex', gap: 10, flexShrink: 0 }}>
-        <BtnSecondary theme={T} icon={I.save}>Guardar</BtnSecondary>
-        <BtnPrimary theme={T} full style={{ flex: 1 }} icon={I.cart}
-          onClick={() => navigate('/cliente/checkout')}>Agregar todo al pedido</BtnPrimary>
       </div>
     </div>
   );
