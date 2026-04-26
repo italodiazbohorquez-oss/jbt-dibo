@@ -23,7 +23,7 @@ export async function getPedidos({ limite = 20 } = {}) {
 export async function getPedidosByCliente(clienteId) {
   const { data, error } = await supabase
     .from('pedidos')
-    .select(`*, pedido_items(*, productos(nombre, tipo, unidad))`)
+    .select(`*, pedido_items(*, productos(nombre, tipo, unidad)), choferes(nombre, placa, telefono)`)
     .eq('cliente_id', clienteId)
     .order('created_at', { ascending: false });
   return { data: data ?? [], error };

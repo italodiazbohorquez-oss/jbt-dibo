@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { I } from '../../components/Icons';
 import { BtnPrimary } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { useCart } from '../../context/CartContext';
@@ -8,17 +7,19 @@ import { useAuth } from '../../context/AuthContext';
 import { crearPedido } from '../../lib/api';
 
 const PAY_METHODS = [
-  { id: 'yape', l: 'Yape', sub: 'QR · al instante', logo: 'Y', color: '#6B2FA5' },
-  { id: 'transferencia', l: 'Transferencia', sub: 'BCP / Interbank', logo: '$', color: null },
-  { id: 'tarjeta', l: 'Tarjeta', sub: 'Visa / Mastercard', logo: 'C', color: null },
-  { id: 'contraentrega', l: 'Contra entrega', sub: 'Efectivo al chofer', logo: '✓', color: null },
+  { id: 'yape',         l: 'Yape',           sub: 'QR · al instante',    logo: 'Y', color: '#6B2FA5' },
+  { id: 'transferencia',l: 'Transferencia',   sub: 'BCP / Interbank',     logo: '$', color: null },
+  { id: 'tarjeta',      l: 'Tarjeta',         sub: 'Visa / Mastercard',   logo: 'C', color: null },
+  { id: 'contraentrega',l: 'Contra entrega',  sub: 'Efectivo al chofer',  logo: '✓', color: null },
 ];
 
 export function ScreenCheckout({ theme: T }) {
   const navigate = useNavigate();
   const { items, total, vaciar, actualizarCantidad, quitar } = useCart();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [metodo, setMetodo] = useState('yape');
+  const [direccion, setDireccion] = useState('');
+  const [referencia, setReferencia] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -27,11 +28,13 @@ export function ScreenCheckout({ theme: T }) {
 
   async function handleConfirmar() {
     if (!user || items.length === 0) return;
+    if (!direccion.trim()) { setError('Ingresa la dirección de entrega para continuar.'); return; }
     setLoading(true);
     setError(null);
 
     const cartItems = items.map(i => ({
-      producto_id: i.producto_id,
+      producto_id: i.producto_id || null,
+      nombre: i.nombre,
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
       subtotal: i.subtotal,
@@ -39,11 +42,12 @@ export function ScreenCheckout({ theme: T }) {
 
     const mañana = new Date();
     mañana.setDate(mañana.getDate() + 1);
+    const direccionCompleta = referencia.trim() ? `${direccion.trim()} · Ref: ${referencia.trim()}` : direccion.trim();
 
     const { data, error: err } = await crearPedido({
       clienteId: user.id,
       items: cartItems,
-      direccion: 'Obra Las Flores, Mz B Lt 14',
+      direccion: direccionCompleta,
       metodoPago: metodo,
       fechaEntrega: mañana.toISOString().slice(0, 10),
     });
@@ -78,23 +82,52 @@ export function ScreenCheckout({ theme: T }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24, alignItems: 'start' }}>
           {/* Left column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Delivery info */}
+
+            {/* Delivery address — editable */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Entrega</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📍</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>Obra Las Flores, Mz B Lt 14</div>
-                  <div style={{ fontSize: 12, color: T.ink3 }}>Villa El Salvador · Ref. portón azul</div>
-                </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Dirección de entrega</div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.ink3, marginBottom: 6 }}>
+                  Dirección completa <span style={{ color: T.danger }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={direccion}
+                  onChange={e => setDireccion(e.target.value)}
+                  placeholder="Ej: Av. Los Álamos 342, Villa El Salvador"
+                  style={{
+                    width: '100%', padding: '11px 14px', borderRadius: 10,
+                    border: `1.5px solid ${!direccion && error ? T.danger : T.line}`,
+                    fontSize: 14, fontFamily: T.body, color: T.ink, outline: 'none',
+                    boxSizing: 'border-box', background: '#FAFAFA',
+                  }}
+                />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: T.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📅</div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.ink3, marginBottom: 6 }}>Referencia (opcional)</label>
+                <input
+                  type="text"
+                  value={referencia}
+                  onChange={e => setReferencia(e.target.value)}
+                  placeholder="Ej: Portón azul, frente a la bodega"
+                  style={{
+                    width: '100%', padding: '11px 14px', borderRadius: 10,
+                    border: `1.5px solid ${T.line}`,
+                    fontSize: 14, fontFamily: T.body, color: T.ink, outline: 'none',
+                    boxSizing: 'border-box', background: '#FAFAFA',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: T.accentSoft, borderRadius: 10 }}>
+                <span style={{ fontSize: 16 }}>📅</span>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
-                    Mañana · {new Date(Date.now() + 86400000).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
+                    Entrega mañana · {new Date(Date.now() + 86400000).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </div>
-                  <div style={{ fontSize: 12, color: T.ink3 }}>Ventana: 8:00 AM – 12:00 PM</div>
+                  <div style={{ fontSize: 11, color: T.ink3 }}>Ventana: 8:00 AM – 12:00 PM</div>
                 </div>
               </div>
             </div>
@@ -105,7 +138,7 @@ export function ScreenCheckout({ theme: T }) {
                 Tu pedido ({items.length} {items.length === 1 ? 'producto' : 'productos'})
               </div>
               {items.map((x, i, arr) => (
-                <div key={x.producto_id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line}` : 'none' }}>
+                <div key={x.producto_id ?? x.nombre} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line}` : 'none' }}>
                   <ProductIcon kind={x.tipo} size={52} theme={T}/>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>{x.nombre}</div>
@@ -113,12 +146,12 @@ export function ScreenCheckout({ theme: T }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: T.bg, borderRadius: 8, padding: '4px 8px', border: `1px solid ${T.line}` }}>
-                      <button onClick={() => x.cantidad <= 1 ? quitar(x.producto_id) : actualizarCantidad(x.producto_id, x.cantidad - 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                      <button onClick={() => x.cantidad <= 1 ? quitar(x.producto_id ?? x.nombre) : actualizarCantidad(x.producto_id ?? x.nombre, x.cantidad - 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                       <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, minWidth: 24, textAlign: 'center' }}>{x.cantidad}</span>
-                      <button onClick={() => actualizarCantidad(x.producto_id, x.cantidad + 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                      <button onClick={() => actualizarCantidad(x.producto_id ?? x.nombre, x.cantidad + 1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: T.ink, fontWeight: 700, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.display, minWidth: 70, textAlign: 'right' }}>{fmt(x.subtotal)}</div>
-                    <button onClick={() => quitar(x.producto_id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: T.ink3, fontSize: 18, lineHeight: 1 }}>×</button>
+                    <button onClick={() => quitar(x.producto_id ?? x.nombre)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: T.ink3, fontSize: 18, lineHeight: 1 }}>×</button>
                   </div>
                 </div>
               ))}
@@ -142,18 +175,35 @@ export function ScreenCheckout({ theme: T }) {
                         <div style={{ fontSize: 14, fontWeight: 700, color: sel ? T.primary : T.ink }}>{m.l}</div>
                         <div style={{ fontSize: 11, color: T.ink3 }}>{m.sub}</div>
                       </div>
-                      {sel && <div style={{ marginLeft: 'auto', width: 18, height: 18, borderRadius: '50%', background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</div>}
+                      {sel && <div style={{ marginLeft: 'auto', width: 18, height: 18, borderRadius: '50%', background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11 }}>✓</div>}
                     </div>
                   );
                 })}
               </div>
+
+              {/* Payment instructions */}
+              {metodo === 'yape' && (
+                <div style={{ marginTop: 14, padding: '12px 14px', background: '#F5EDFF', borderRadius: 10, fontSize: 13, color: '#4A1A7A', fontWeight: 600 }}>
+                  📱 Envía el pago al <strong>965 432 100</strong> (JBT DIBO) y adjunta el comprobante por WhatsApp.
+                </div>
+              )}
+              {metodo === 'transferencia' && (
+                <div style={{ marginTop: 14, padding: '12px 14px', background: T.primarySoft, borderRadius: 10, fontSize: 13, color: T.primary, fontWeight: 600 }}>
+                  🏦 BCP: <strong>193-2841567-0-88</strong> · CCI: 002-193-002841567088-17<br/>
+                  <span style={{ fontWeight: 400 }}>Titular: JBT DIBO S.A.C.</span>
+                </div>
+              )}
+              {metodo === 'contraentrega' && (
+                <div style={{ marginTop: 14, padding: '12px 14px', background: '#E6F4EA', borderRadius: 10, fontSize: 13, color: '#1A6B3A', fontWeight: 600 }}>
+                  ✓ El conductor cobrará al momento de la entrega. Ten el monto exacto listo.
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right column — summary */}
           <div style={{ position: 'sticky', top: 72 }}>
             <div style={{ background: '#fff', borderRadius: 16, border: `1px solid ${T.line}`, overflow: 'hidden' }}>
-              {/* Receipt header */}
               <div style={{ background: T.primary, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: '#fff', fontWeight: 900, fontSize: 13 }}>JB</span>
@@ -163,14 +213,19 @@ export function ScreenCheckout({ theme: T }) {
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,.7)' }}>RUC: 20615017770</div>
                 </div>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>Boleta de venta</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>Pedido</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)' }}>{new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                 </div>
               </div>
 
               <div style={{ padding: 20 }}>
+                {profile && (
+                  <div style={{ fontSize: 13, color: T.ink3, marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${T.line}` }}>
+                    Cliente: <strong style={{ color: T.ink }}>{profile.nombre}</strong>
+                  </div>
+                )}
                 {items.map(x => (
-                  <div key={x.producto_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: T.ink2, padding: '4px 0' }}>
+                  <div key={x.producto_id ?? x.nombre} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: T.ink2, padding: '4px 0' }}>
                     <span style={{ flex: 1, marginRight: 8 }}>{x.nombre} ×{x.cantidad}</span>
                     <span style={{ fontWeight: 600, color: T.ink }}>{fmt(x.subtotal)}</span>
                   </div>
@@ -206,12 +261,18 @@ export function ScreenCheckout({ theme: T }) {
                   </div>
                 )}
 
-                <button onClick={handleConfirmar} disabled={loading} style={{
-                  width: '100%', marginTop: 20, padding: '14px', background: loading ? T.ink3 : T.accent,
-                  color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 16,
-                  cursor: loading ? 'not-allowed' : 'pointer', fontFamily: T.display,
-                }}>
-                  {loading ? 'Registrando...' : `Confirmar pedido`}
+                <button
+                  onClick={handleConfirmar}
+                  disabled={loading}
+                  style={{
+                    width: '100%', marginTop: 20, padding: '14px',
+                    background: loading ? T.ink3 : T.accent,
+                    color: '#fff', border: 'none', borderRadius: 12,
+                    fontWeight: 800, fontSize: 16, cursor: loading ? 'not-allowed' : 'pointer',
+                    fontFamily: T.display,
+                  }}
+                >
+                  {loading ? 'Registrando...' : 'Confirmar pedido'}
                 </button>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { BtnPrimary, BtnSecondary, Chip, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { AdminSidebar } from './AdminSidebar';
 import { getKPIs, getPedidos, getStock } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 
 function Stat({ T, label, value, delta, tone = 'ok', icon }) {
   const Ic = I[icon];
@@ -51,6 +52,7 @@ const ESTADO_LABEL = {
 };
 
 export function AdminDashboard({ theme: T }) {
+  const { profile } = useAuth();
   const [kpis, setKpis] = useState({ ventasHoy: 0, pedidosActivos: 0, choferes: { enRuta: 0, total: 0 } });
   const [pedidos, setPedidos] = useState([]);
   const [stockCrit, setStockCrit] = useState([]);
@@ -76,7 +78,7 @@ export function AdminDashboard({ theme: T }) {
         <div style={{ background: T.surface, padding: '14px 28px', borderBottom: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: 11, color: T.ink3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>Panel general</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: T.ink, fontFamily: T.display, letterSpacing: '-.02em' }}>Buen día, José</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: T.ink, fontFamily: T.display, letterSpacing: '-.02em' }}>Buen día, {profile?.nombre?.split(' ')[0] || 'Admin'}</div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ background: T.chip, borderRadius: 10, padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 8, minWidth: 260 }}>
@@ -180,21 +182,21 @@ export function AdminDashboard({ theme: T }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ background: '#E6F4EA', borderRadius: 10, padding: 12 }}>
                   <div style={{ fontSize: 11, color: T.ok, fontWeight: 700 }}>Ingresos</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: T.ok, fontFamily: T.display, marginTop: 4 }}>+ S/12,840</div>
-                  <div style={{ fontSize: 10, color: T.ink3, marginTop: 2 }}>9 operaciones</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: T.ok, fontFamily: T.display, marginTop: 4 }}>+ {fmt(kpis.ventasHoy)}</div>
+                  <div style={{ fontSize: 10, color: T.ink3, marginTop: 2 }}>hoy</div>
                 </div>
                 <div style={{ background: '#FCE7E2', borderRadius: 10, padding: 12 }}>
                   <div style={{ fontSize: 11, color: T.danger, fontWeight: 700 }}>Egresos</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: T.danger, fontFamily: T.display, marginTop: 4 }}>− S/3,280</div>
-                  <div style={{ fontSize: 10, color: T.ink3, marginTop: 2 }}>4 operaciones</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: T.danger, fontFamily: T.display, marginTop: 4 }}>− {fmt(kpis.egresos ?? 0)}</div>
+                  <div style={{ fontSize: 10, color: T.ink3, marginTop: 2 }}>hoy</div>
                 </div>
               </div>
               <div style={{ marginTop: 12, padding: 12, background: T.chip, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 11, color: T.ink3, fontWeight: 600 }}>Saldo del día</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: T.ink, fontFamily: T.display }}>S/9,560</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(kpis.saldo ?? 0)}</div>
                 </div>
-                <BtnSecondary theme={T} style={{ fontSize: 12, padding: '8px 12px' }} icon={I.eye}>Ver libro</BtnSecondary>
+                <div style={{ fontSize: 12, color: T.ink3 }}>Datos en tiempo real</div>
               </div>
             </div>
           </div>
