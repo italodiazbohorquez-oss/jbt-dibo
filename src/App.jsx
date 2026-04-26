@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import { LoginScreen } from './screens/auth/LoginScreen';
 import { TOKENS } from './tokens';
 import { Phone } from './components/UI';
 import { ScreenHome } from './screens/client/ScreenHome';
@@ -31,6 +33,7 @@ function TopNav({ theme: T, themeKey, setThemeKey }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showThemes, setShowThemes] = useState(false);
+  const { profile, signOut } = useAuth();
 
   const isClient = location.pathname.startsWith('/cliente');
   const isB2B = location.pathname.startsWith('/b2b');
@@ -74,7 +77,22 @@ function TopNav({ theme: T, themeKey, setThemeKey }) {
         })}
       </div>
 
-      <div style={{ marginLeft: 'auto', position: 'relative' }}>
+      {/* Usuario logueado */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+        {profile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: T.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: T.primary }}>
+              {profile.nombre?.charAt(0).toUpperCase()}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.ink2 }}>{profile.nombre?.split(' ')[0]}</span>
+          </div>
+        )}
+        <button onClick={signOut} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${T.line}`, background: '#fff', fontSize: 12, fontWeight: 600, color: T.ink3, cursor: 'pointer', fontFamily: T.body }}>
+          Salir
+        </button>
+      </div>
+
+      <div style={{ marginLeft: 12, position: 'relative' }}>
         <button onClick={() => setShowThemes(v => !v)} style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
           borderRadius: 8, border: '1px solid #DCE4DF', background: '#fff',
@@ -134,6 +152,20 @@ function AppContent() {
   const T = TOKENS[themeKey];
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
+  const { user, profile, loading } = useAuth();
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0eee9', fontFamily: T.body }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: T.accent, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+          <span style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>JB</span>
+        </div>
+        <div style={{ fontSize: 14, color: T.ink3 }}>Cargando...</div>
+      </div>
+    </div>
+  );
+
+  if (!user) return <LoginScreen/>;
 
   return (
     <div style={{

@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { I } from '../../components/Icons';
 import { BtnPrimary, BtnSecondary, Chip, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { AdminSidebar } from './AdminSidebar';
+import { getKPIs, getPedidos, getStock } from '../../lib/api';
 
 function Stat({ T, label, value, delta, tone = 'ok', icon }) {
   const Ic = I[icon];
@@ -39,7 +41,34 @@ const stockCritical = [
 const barData = [62, 48, 85, 72, 94, 58, 78];
 const barDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
+const ESTADO_BADGE = {
+  en_ruta: 'accent', cargando: 'warn', confirmado: 'primary',
+  entregado: 'ok', pendiente: 'neutral', cancelado: 'danger',
+};
+const ESTADO_LABEL = {
+  en_ruta: 'En ruta', cargando: 'Cargando', confirmado: 'Confirmado',
+  entregado: 'Entregado', pendiente: 'Pendiente', cancelado: 'Cancelado',
+};
+
 export function AdminDashboard({ theme: T }) {
+  const [kpis, setKpis] = useState({ ventasHoy: 0, pedidosActivos: 0, choferes: { enRuta: 0, total: 0 } });
+  const [pedidos, setPedidos] = useState([]);
+  const [stockCrit, setStockCrit] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const [kRes, pRes, sRes] = await Promise.all([getKPIs(), getPedidos({ limite: 5 }), getStock()]);
+      setKpis(kRes);
+      setPedidos(pRes.data);
+      setStockCrit(sRes.data.filter(p => p.stock_actual <= p.stock_minimo).slice(0, 3));
+      setLoadingData(false);
+    }
+    load();
+  }, []);
+
+  const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
+
   return (
     <div style={{ display: 'flex', height: '100%', background: T.bg, fontFamily: T.body, overflow: 'hidden' }}>
       <AdminSidebar T={T}/>
@@ -60,10 +89,10 @@ export function AdminDashboard({ theme: T }) {
 
         <div style={{ padding: 28, flex: 1 }}>
           <div style={{ display: 'flex', gap: 14 }}>
-            <Stat T={T} label="Ventas hoy" value="S/12,840" delta="+18%" icon="wallet"/>
-            <Stat T={T} label="Pedidos activos" value="23" delta="+4" icon="doc"/>
-            <Stat T={T} label="Volquetes en ruta" value="5 / 8" delta="On-time 94%" icon="truck"/>
-            <Stat T={T} label="Tu comisión (mes)" value="S/3,420" delta="+22%" icon="chart"/>
+            <Stat T={T} label="Ventas hoy" value={fmt(kpis.ventasHoy)} delta="en tiempo real" icon="wallet"/>
+            <Stat T={T} label="Pedidos activos" value={String(kpis.pedidosActivos)} delta="confirmados + en ruta" icon="doc"/>
+            <Stat T={T} label="Volquetes en ruta" value={`${kpis.choferes.enRuta} / ${kpis.choferes.total}`} delta="activos hoy" icon="truck"/>
+            <Stat T={T} label="Tu comisión (mes)" value={fmt(kpis.ventasHoy * 0.05)} delta="0.05% sobre ventas" icon="chart"/>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14, marginTop: 14 }}>
@@ -95,19 +124,27 @@ export function AdminDashboard({ theme: T }) {
                 <div style={{ fontSize: 14, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Pedidos recientes</div>
                 <span style={{ fontSize: 12, color: T.accent, fontWeight: 700, cursor: 'pointer' }}>Ver todos</span>
               </div>
-              {recentOrders.map((o, i, arr) => (
-                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line2}` : 'none' }}>
-                  <ProductIcon kind={o.k} size={34} theme={T}/>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.n}</div>
-                    <div style={{ fontSize: 10, color: T.ink3, fontFamily: T.mono }}>{o.id}</div>
+              {loadingData && <div style={{ fontSize: 13, color: T.ink3, padding: '20px 0', textAlign: 'center' }}>Cargando...</div>}
+              {pedidos.map((o, i, arr) => {
+                const primerItem = o.pedido_items?.[0];
+                const kind = primerItem?.productos?.tipo || 'arena';
+                return (
+                  <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.line2}` : 'none' }}>
+                    <ProductIcon kind={kind} size={34} theme={T}/>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.profiles?.nombre || o.profiles?.empresa || 'Cliente'}</div>
+                      <div style={{ fontSize: 10, color: T.ink3, fontFamily: T.mono }}>{o.numero}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(o.total)}</div>
+                      <Badge theme={T} tone={ESTADO_BADGE[o.estado] || 'neutral'} style={{ fontSize: 9, padding: '2px 6px' }}>{ESTADO_LABEL[o.estado] || o.estado}</Badge>
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: T.ink, fontFamily: T.display }}>{o.v}</div>
-                    <Badge theme={T} tone={o.tn} style={{ fontSize: 9, padding: '2px 6px' }}>{o.st}</Badge>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+              {!loadingData && pedidos.length === 0 && (
+                <div style={{ fontSize: 13, color: T.ink3, padding: '20px 0', textAlign: 'center' }}>Sin pedidos aún</div>
+              )}
             </div>
           </div>
 
@@ -117,18 +154,25 @@ export function AdminDashboard({ theme: T }) {
                 <div style={{ fontSize: 14, fontWeight: 800, color: T.ink, fontFamily: T.display }}>Stock crítico</div>
                 <Badge theme={T} tone="danger">3 bajo mínimo</Badge>
               </div>
-              {stockCritical.map((s, i) => (
-                <div key={i} style={{ padding: '10px 0', borderBottom: i < 2 ? `1px solid ${T.line2}` : 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <ProductIcon kind={s.k} size={28} theme={T}/>
-                    <div style={{ flex: 1, fontSize: 12, fontWeight: 700, color: T.ink }}>{s.n}</div>
-                    <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>{s.q}</div>
+              {stockCrit.length === 0 && !loadingData && (
+                <div style={{ fontSize: 13, color: T.ok, padding: '20px 0', textAlign: 'center' }}>✓ Todo el stock en niveles normales</div>
+              )}
+              {stockCrit.map((s, i) => {
+                const pct = Math.min(100, (s.stock_actual / s.stock_minimo) * 100);
+                const color = pct < 20 ? T.danger : pct < 60 ? '#E5B100' : T.ok;
+                return (
+                  <div key={s.id} style={{ padding: '10px 0', borderBottom: i < stockCrit.length - 1 ? `1px solid ${T.line2}` : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <ProductIcon kind={s.tipo} size={28} theme={T}/>
+                      <div style={{ flex: 1, fontSize: 12, fontWeight: 700, color: T.ink }}>{s.nombre}</div>
+                      <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>{s.stock_actual} / {s.stock_minimo} {s.unidad}</div>
+                    </div>
+                    <div style={{ height: 5, background: T.chip, borderRadius: 3 }}>
+                      <div style={{ height: '100%', width: pct + '%', background: color, borderRadius: 3 }}/>
+                    </div>
                   </div>
-                  <div style={{ height: 5, background: T.chip, borderRadius: 3 }}>
-                    <div style={{ height: '100%', width: s.pct + '%', background: s.crit ? T.danger : s.ok ? T.ok : '#E5B100', borderRadius: 3 }}/>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div style={{ background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, padding: 18 }}>

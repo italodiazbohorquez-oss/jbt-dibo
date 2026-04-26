@@ -1,12 +1,22 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { I } from '../../components/Icons';
 import { Chip } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { TabBar } from './TabBar';
-import { PRODUCTS } from './data';
+import { getProductos } from '../../lib/api';
 
 export function ScreenHome({ theme: T }) {
   const navigate = useNavigate();
+  const [productos, setProductos] = useState([]);
+  const [filtro, setFiltro] = useState('Todos');
+
+  useEffect(() => { getProductos().then(({ data }) => setProductos(data)); }, []);
+
+  const categorias = ['Todos', 'Agregados', 'Cementos', 'Ladrillos', 'Fierros'];
+  const tipoMap = { Agregados: ['arena','piedra','hormigon'], Cementos: ['cemento'], Ladrillos: ['ladrillo'], Fierros: ['fierro'] };
+  const productosFiltrados = filtro === 'Todos' ? productos : productos.filter(p => (tipoMap[filtro] || []).includes(p.tipo));
+
   return (
     <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: T.bg }}>
       <div style={{ background: T.primary, padding: '12px 16px 18px', color: '#fff', flexShrink: 0 }}>
@@ -66,8 +76,8 @@ export function ScreenHome({ theme: T }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, padding: '14px 16px 4px', overflowX: 'auto' }}>
-          {['Todos', 'Agregados', 'Cementos', 'Ladrillos', 'Fierros'].map((c, i) => (
-            <Chip key={c} theme={T} active={i === 0}>{c}</Chip>
+          {categorias.map((c) => (
+            <Chip key={c} theme={T} active={filtro === c} onClick={() => setFiltro(c)}>{c}</Chip>
           ))}
         </div>
 
@@ -77,21 +87,21 @@ export function ScreenHome({ theme: T }) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px 20px' }}>
-          {PRODUCTS.slice(0, 4).map((p) => (
-            <div key={p.id} onClick={() => navigate('/cliente/detalle')}
+          {productosFiltrados.slice(0, 6).map((p) => (
+            <div key={p.id} onClick={() => navigate('/cliente/detalle', { state: { producto: p } })}
               style={{ background: T.surface, borderRadius: 14, border: `1px solid ${T.line}`, padding: 10, position: 'relative', cursor: 'pointer' }}>
-              {p.tag && (
-                <div style={{ position: 'absolute', top: 8, left: 8, background: T.primary, color: '#fff', fontSize: 9, fontWeight: 800, padding: '3px 6px', borderRadius: 4, letterSpacing: '.05em' }}>{p.tag}</div>
+              {p.stock_actual <= p.stock_minimo && (
+                <div style={{ position: 'absolute', top: 8, left: 8, background: '#E5B100', color: '#fff', fontSize: 9, fontWeight: 800, padding: '3px 6px', borderRadius: 4 }}>BAJO STOCK</div>
               )}
               <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 6px' }}>
-                <ProductIcon kind={p.kind} size={64} theme={T}/>
+                <ProductIcon kind={p.tipo} size={64} theme={T}/>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, lineHeight: 1.2 }}>{p.name}</div>
-              <div style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}>{p.subtitle}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, lineHeight: 1.2 }}>{p.nombre}</div>
+              <div style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}>{p.descripcion?.slice(0, 30)}</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.display }}>S/{p.price}</div>
-                  <div style={{ fontSize: 10, color: T.ink3, marginTop: -2 }}>por {p.unit}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.display }}>S/{p.precio}</div>
+                  <div style={{ fontSize: 10, color: T.ink3, marginTop: -2 }}>por {p.unidad}</div>
                 </div>
                 <button style={{ width: 30, height: 30, borderRadius: 9, background: T.accent, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <I.plus size={16} color="#fff"/>
@@ -99,6 +109,9 @@ export function ScreenHome({ theme: T }) {
               </div>
             </div>
           ))}
+          {productosFiltrados.length === 0 && (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 30, color: T.ink3, fontSize: 13 }}>Cargando productos...</div>
+          )}
         </div>
         <div style={{ height: 70 }}/>
       </div>
