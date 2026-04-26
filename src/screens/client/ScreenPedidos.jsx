@@ -157,29 +157,45 @@ export function ScreenPedidos({ theme: T }) {
 
   useEffect(() => {
     if (!user) return;
-    getPedidosByCliente(user.id).then(({ data, error }) => {
-      if (error) console.error('Error cargando pedidos cliente:', error);
-      setPedidos(data || []);
-      setLoading(false);
-    });
 
+    function fetchPedidos() {
+      return getPedidosByCliente(user.id).then(({ data, error }) => {
+        if (error) console.error('Error cargando pedidos cliente:', error);
+        else setPedidos(data || []);
+        setLoading(false);
+      });
+    }
+
+    fetchPedidos();
+
+    // Polling fallback cada 15s por si el websocket falla
+    const interval = setInterval(fetchPedidos, 15000);
+
+    // Realtime sin filtro (más confiable que filtrar en servidor)
     const channel = supabase
       .channel('mis-pedidos-' + user.id)
       .on('postgres_changes', {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'pedidos',
-        filter: `cliente_id=eq.${user.id}`,
       }, (payload) => {
-        setPedidos(prev => prev.map(p =>
-          p.id === payload.new.id
-            ? { ...p, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
-            : p
-        ));
+        if (payload.new?.cliente_id !== user.id) return;
+        if (payload.eventType === 'UPDATE') {
+          setPedidos(prev => prev.map(p =>
+            p.id === payload.new.id
+              ? { ...p, estado: payload.new.estado, motivo_cancelacion: payload.new.motivo_cancelacion }
+              : p
+          ));
+        } else if (payload.eventType === 'INSERT') {
+          fetchPedidos();
+        }
       })
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const filtrados = filtro === 'todos' ? pedidos

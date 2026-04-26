@@ -163,6 +163,24 @@ function NuevoPedidoModal({ T, onSave, onClose }) {
   );
 }
 
+function playNotifSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 120].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = i === 0 ? 880 : 1100;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0, ctx.currentTime + delay / 1000);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + delay / 1000 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay / 1000 + 0.3);
+      osc.start(ctx.currentTime + delay / 1000);
+      osc.stop(ctx.currentTime + delay / 1000 + 0.35);
+    });
+  } catch (_) {}
+}
+
 // ── Pantalla principal ──────────────────────────────────────
 export function AdminPedidos({ theme: T }) {
   const location = useLocation();
@@ -178,10 +196,14 @@ export function AdminPedidos({ theme: T }) {
   const [cancelModal, setCancelModal] = useState(false);
   const [motivoAdmin, setMotivoAdmin] = useState('');
   const [cancelando, setCancelando] = useState(false);
+  const [newOrderToast, setNewOrderToast] = useState(null);
 
   useEffect(() => {
     load();
     getChoferes().then(({ data }) => setChoferes(data || []));
+
+    // Polling de respaldo cada 20s
+    const interval = setInterval(silentLoad, 20000);
 
     const channel = supabase
       .channel('admin-pedidos')
@@ -189,8 +211,11 @@ export function AdminPedidos({ theme: T }) {
         event: 'INSERT',
         schema: 'public',
         table: 'pedidos',
-      }, () => {
-        load();
+      }, (payload) => {
+        playNotifSound();
+        setNewOrderToast(payload.new);
+        setTimeout(() => setNewOrderToast(null), 6000);
+        silentLoad();
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -209,7 +234,10 @@ export function AdminPedidos({ theme: T }) {
       })
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function load() {
@@ -218,6 +246,12 @@ export function AdminPedidos({ theme: T }) {
     if (error) console.error('Error cargando pedidos:', error);
     setPedidos(data);
     setLoading(false);
+  }
+
+  async function silentLoad() {
+    const { data, error } = await getPedidos({ limite: 50 });
+    if (error) console.error('Error cargando pedidos:', error);
+    else setPedidos(data);
   }
 
   async function avanzarEstado(pedido) {
@@ -244,6 +278,28 @@ export function AdminPedidos({ theme: T }) {
     <div style={{ display: 'flex', height: '100%', background: T.bg, fontFamily: T.body, overflow: 'hidden' }}>
       <AdminSidebar T={T}/>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Toast nuevo pedido */}
+        {newOrderToast && (
+          <div style={{
+            position: 'fixed', top: 16, right: 16, zIndex: 500,
+            background: T.ink, color: '#fff', borderRadius: 14, padding: '14px 18px',
+            display: 'flex', alignItems: 'center', gap: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,.3)', fontFamily: T.body,
+            animation: 'slideIn .25s ease',
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🛒</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>¡Nuevo pedido recibido!</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', marginTop: 2 }}>
+                {newOrderToast.numero || 'Pedido nuevo'} · S/{Number(newOrderToast.total || 0).toLocaleString('es-PE')}
+              </div>
+            </div>
+            <button onClick={() => setNewOrderToast(null)}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontSize: 16, marginLeft: 4 }}>✕</button>
+          </div>
+        )}
+
         <div style={{ background: T.surface, padding: '14px 28px', borderBottom: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: 11, color: T.ink3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>Gestión</div>
