@@ -52,6 +52,7 @@ export async function crearPedido({ clienteId, items, direccion, metodoPago, fec
     pedido_id: pedido.id,
     producto_id: i.producto_id || null,
     cantidad: Number(i.cantidad),
+    precio_unitario: Number(i.precio_unitario || 0),
     subtotal: Number(i.subtotal),
   }));
 
