@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductIcon } from '../../components/ProductIcon';
 import { useCart } from '../../context/CartContext';
@@ -47,19 +47,23 @@ const PAY_METHODS = [
 ];
 
 const FRANJAS = [
-  { id: 'manana', l: '7:00 – 12:00', icon: '🌅' },
-  { id: 'tarde',  l: '12:00 – 17:00', icon: '☀️' },
-  { id: 'noche',  l: '17:00 – 20:00', icon: '🌆' },
+  { id: 'manana', l: '7:00 AM – 1:00 PM',  icon: '🌅' },
+  { id: 'tarde',  l: '2:00 PM – 5:00 PM',   icon: '☀️' },
 ];
 
-function generarFechas() {
-  const result = [];
+// Devuelve fecha mínima (mañana, saltando domingo)
+function minFecha() {
   const d = new Date();
-  while (result.length < 4) {
-    d.setDate(d.getDate() + 1);
-    if (d.getDay() !== 0) result.push(new Date(d)); // sin domingo
-  }
-  return result;
+  d.setDate(d.getDate() + 1);
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1); // si mañana es domingo → lunes
+  return d.toISOString().slice(0, 10);
+}
+
+// Fecha máxima: 14 días hábiles adelante
+function maxFecha() {
+  const d = new Date();
+  d.setDate(d.getDate() + 20);
+  return d.toISOString().slice(0, 10);
 }
 
 export function ScreenCheckout({ theme: T }) {
@@ -70,38 +74,48 @@ export function ScreenCheckout({ theme: T }) {
   const [metodo, setMetodo] = useState('yape');
   const [direccion, setDireccion] = useState('');
   const [referencia, setReferencia] = useState('');
-  const [fechaIdx, setFechaIdx] = useState(0);
+  const [fecha, setFecha] = useState(minFecha);
   const [franja, setFranja] = useState('manana');
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const fechas = useMemo(generarFechas, []);
   const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
   const totalConDespacho = total >= 500 ? total : total + 50;
 
+  // eslint-disable-next-line no-unused-vars
   async function detectarUbicacion() {
     if (!navigator.geolocation) { setGpsError('Tu dispositivo no soporta GPS'); return; }
     setGpsLoading(true); setGpsError('');
     try {
       const pos = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
+        navigator.geolocation.getCurrentPosition(res, rej, {
+          enableHighAccuracy: true,  // usa GPS del dispositivo, no IP
+          timeout: 15000,
+          maximumAge: 0,             // siempre fresco, sin caché
+        })
       );
-      const { latitude, longitude } = pos.coords;
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=es`,
-        { headers: { 'Accept-Language': 'es' } }
+      const { latitude, longitude, accuracy } = pos.coords;
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        { headers: { 'Accept-Language': 'es-PE,es' } }
       );
-      const geo = await res.json();
+      const geo = await resp.json();
       const a = geo.address || {};
-      const calle = a.road ? (a.house_number ? `${a.road} ${a.house_number}` : a.road) : '';
-      const zona = a.suburb || a.neighbourhood || a.quarter || '';
-      const distrito = a.city_district || a.district || a.town || '';
-      const partes = [calle, zona, distrito].filter(Boolean);
-      setDireccion(partes.join(', ') || geo.display_name?.split(',').slice(0, 2).join(',') || '');
+      const calle = [a.road, a.house_number].filter(Boolean).join(' ');
+      const zona  = a.suburb || a.neighbourhood || a.quarter || a.village || '';
+      const dist  = a.city_district || a.district || a.municipality || a.town || a.city || '';
+      const partes = [calle, zona, dist].filter(Boolean);
+      const direccionDetectada = partes.join(', ') || geo.display_name?.split(',').slice(0, 3).join(', ') || '';
+      setDireccion(direccionDetectada);
+      // Aviso si la precisión es baja (> 100m)
+      if (accuracy > 100) {
+        setGpsError(`Precisión aproximada: ±${Math.round(accuracy)}m. Verifica o corrige la dirección.`);
+      }
     } catch (e) {
-      setGpsError(e.code === 1 ? 'Permiso denegado. Activa la ubicación en tu navegador.' : 'No se pudo obtener tu ubicación.');
+      if (e.code === 1) setGpsError('Permiso de ubicación denegado. Actívalo en la configuración de tu navegador.');
+      else if (e.code === 2) setGpsError('No se pudo obtener la ubicación. Verifica que el GPS esté activo.');
+      else setGpsError('Tiempo de espera agotado. Intenta de nuevo o escribe la dirección manualmente.');
     } finally { setGpsLoading(false); }
   }
 
@@ -130,7 +144,7 @@ export function ScreenCheckout({ theme: T }) {
       items: cartItems,
       direccion: direccionCompleta,
       metodoPago: metodo,
-      fechaEntrega: fechas[fechaIdx].toISOString().slice(0, 10),
+      fechaEntrega: fecha,
     });
 
     setLoading(false);
@@ -226,38 +240,53 @@ export function ScreenCheckout({ theme: T }) {
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: `1px solid ${T.line}` }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: T.ink3, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>📅 ¿Cuándo deseas recibirlo?</div>
 
-              {/* Días */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
-                {fechas.map((f, i) => (
-                  <button key={i} onClick={() => setFechaIdx(i)} style={{
-                    padding: '10px 6px', borderRadius: 10, border: `2px solid ${fechaIdx === i ? T.primary : T.line}`,
-                    background: fechaIdx === i ? T.primarySoft : '#fff',
-                    cursor: 'pointer', textAlign: 'center', fontFamily: T.body,
-                  }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: fechaIdx === i ? T.primary : T.ink3, textTransform: 'capitalize' }}>
-                      {f.toLocaleDateString('es-PE', { weekday: 'short' })}
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: fechaIdx === i ? T.primary : T.ink, fontFamily: T.display }}>
-                      {f.getDate()}
-                    </div>
-                    <div style={{ fontSize: 10, color: fechaIdx === i ? T.primary : T.ink3 }}>
-                      {f.toLocaleDateString('es-PE', { month: 'short' })}
-                    </div>
-                  </button>
-                ))}
+              {/* Calendario desplegable */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.ink3, marginBottom: 6 }}>Fecha de entrega</label>
+                <input
+                  type="date"
+                  value={fecha}
+                  min={minFecha()}
+                  max={maxFecha()}
+                  onChange={e => {
+                    if (!e.target.value) return;
+                    // Si elige domingo, avanzar al lunes automáticamente
+                    const d = new Date(e.target.value + 'T12:00:00');
+                    if (d.getDay() === 0) {
+                      d.setDate(d.getDate() + 1);
+                      setFecha(d.toISOString().slice(0, 10));
+                    } else {
+                      setFecha(e.target.value);
+                    }
+                  }}
+                  style={{
+                    width: '100%', padding: '12px 14px', borderRadius: 10,
+                    border: `1.5px solid ${T.primary}`, fontSize: 15,
+                    fontFamily: T.body, color: T.ink, outline: 'none',
+                    boxSizing: 'border-box', cursor: 'pointer',
+                    background: T.primarySoft,
+                  }}
+                />
+                {fecha && (
+                  <div style={{ fontSize: 12, color: T.primary, fontWeight: 600, marginTop: 5 }}>
+                    {new Date(fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>Lunes a sábado · Los domingos no hay despacho</div>
               </div>
 
-              {/* Franjas horarias */}
+              {/* Franjas horarias: solo 2 */}
               <div style={{ fontSize: 12, fontWeight: 700, color: T.ink3, marginBottom: 8 }}>Franja horaria</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {FRANJAS.map((f) => (
                   <button key={f.id} onClick={() => setFranja(f.id)} style={{
-                    padding: '10px 8px', borderRadius: 10, border: `2px solid ${franja === f.id ? T.accent : T.line}`,
+                    padding: '14px 10px', borderRadius: 12,
+                    border: `2px solid ${franja === f.id ? T.accent : T.line}`,
                     background: franja === f.id ? T.accentSoft : '#fff',
                     cursor: 'pointer', textAlign: 'center', fontFamily: T.body,
                   }}>
-                    <div style={{ fontSize: 18, marginBottom: 2 }}>{f.icon}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: franja === f.id ? T.accent : T.ink }}>{f.l}</div>
+                    <div style={{ fontSize: 22, marginBottom: 4 }}>{f.icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: franja === f.id ? T.accent : T.ink }}>{f.l}</div>
                   </button>
                 ))}
               </div>
@@ -361,7 +390,10 @@ export function ScreenCheckout({ theme: T }) {
                   )}
                   <div style={{ display: 'flex', gap: 6, color: T.ink3 }}>
                     <span>📅</span>
-                    <span>{fmtFecha(fechas[fechaIdx])} · {FRANJAS.find(f => f.id === franja)?.l}</span>
+                    <span>
+                      {fecha ? new Date(fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }) : '—'}
+                      {' · '}{FRANJAS.find(f => f.id === franja)?.l}
+                    </span>
                   </div>
                 </div>
 
