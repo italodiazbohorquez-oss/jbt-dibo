@@ -17,6 +17,7 @@ import { AdminRoutes } from './screens/admin/AdminRoutes';
 import { AdminInventory } from './screens/admin/AdminInventory';
 import { AdminPedidos } from './screens/admin/AdminPedidos';
 import { ScreenRepartidor } from './screens/repartidor/ScreenRepartidor';
+import { ScreenCuenta } from './screens/client/ScreenCuenta';
 import { useIsMobile } from './hooks/useIsMobile';
 
 const T = TOKENS.cantera;
@@ -281,6 +282,7 @@ function MobileTabBar() {
     { path: '/cliente/home', icon: '🏠', label: 'Inicio' },
     { path: '/cliente/pedidos', icon: '📦', label: 'Pedidos' },
     { path: '/cliente/cotizador', icon: '🧮', label: 'Cotizar' },
+    { path: '/cliente/cuenta', icon: '👤', label: 'Cuenta' },
   ];
   return (
     <div style={{
@@ -299,10 +301,6 @@ function MobileTabBar() {
           </div>
         );
       })}
-      <div onClick={signOut} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer' }}>
-        <span style={{ fontSize: 20 }}>⎋</span>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.ink3 }}>Salir</span>
-      </div>
     </div>
   );
 }
@@ -323,6 +321,7 @@ function ClientLayout() {
           <Route path="/cliente/checkout" element={<ScreenCheckout theme={T}/>}/>
           <Route path="/cliente/pedidos" element={<ScreenPedidos theme={T}/>}/>
           <Route path="/cliente/tracking" element={<ScreenTracking theme={T}/>}/>
+          <Route path="/cliente/cuenta" element={<ScreenCuenta theme={T}/>}/>
           <Route path="/b2b" element={<ScreenFerreteria theme={T}/>}/>
           <Route path="*" element={<SmartRedirect/>}/>
         </Routes>

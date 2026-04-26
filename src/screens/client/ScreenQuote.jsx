@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductIcon } from '../../components/ProductIcon';
 import { useCart } from '../../context/CartContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Fórmulas de mezcla por m³ de concreto o m² de área
 const FORMULAS = {
@@ -65,6 +66,7 @@ const PRECIOS_DEFAULT = { cemento: 28, arena: 75, piedra: 88, ladrillo: 1.20, fi
 export function ScreenQuote({ theme: T }) {
   const navigate = useNavigate();
   const { agregar } = useCart();
+  const isMobile = useIsMobile();
 
   const [tipo, setTipo] = useState('columna');
   const [dims, setDims] = useState({ ancho: '0.30', largo: '0.30', alto: '2.80' });
@@ -105,16 +107,16 @@ export function ScreenQuote({ theme: T }) {
 
   return (
     <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
-      <div style={{ background: T.primary, padding: '32px 0 40px' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 6 }}>Herramienta gratuita</div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', fontFamily: T.display }}>Cotizador de obra</div>
-          <div style={{ fontSize: 15, color: 'rgba(255,255,255,.75)', marginTop: 6 }}>Calculamos las cantidades exactas de materiales para tu proyecto</div>
+      <div style={{ background: T.primary, padding: isMobile ? '20px 0 28px' : '32px 0 40px' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: isMobile ? '0 14px' : '0 24px' }}>
+          {!isMobile && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 6 }}>Herramienta gratuita</div>}
+          <div style={{ fontSize: isMobile ? 24 : 32, fontWeight: 900, color: '#fff', fontFamily: T.display }}>Cotizador de obra</div>
+          <div style={{ fontSize: isMobile ? 13 : 15, color: 'rgba(255,255,255,.75)', marginTop: 4 }}>Cantidades exactas de materiales para tu proyecto</div>
         </div>
       </div>
 
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: isMobile ? '16px 14px' : '32px 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 360px', gap: isMobile ? 16 : 24, alignItems: 'start' }}>
           {/* Left: inputs */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Tipo de elemento */}
@@ -175,7 +177,7 @@ export function ScreenQuote({ theme: T }) {
           </div>
 
           {/* Right: results */}
-          <div style={{ position: 'sticky', top: 72 }}>
+          <div style={isMobile ? {} : { position: 'sticky', top: 72 }}>
             {!resultado ? (
               <div style={{ background: '#fff', borderRadius: 16, border: `1px dashed ${T.line}`, padding: 40, textAlign: 'center' }}>
                 <div style={{ fontSize: 40 }}>📐</div>

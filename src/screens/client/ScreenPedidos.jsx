@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
-import { getPedidosByCliente } from '../../lib/api';
+import { getPedidosByCliente, cancelarPedido } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 const ESTADO_BADGE = {
@@ -17,11 +17,12 @@ const ESTADO_LABEL = {
 const ESTADO_STEPS = ['pendiente', 'confirmado', 'cargando', 'en_ruta', 'entregado'];
 const STEP_LABELS = ['Recibido', 'Confirmado', 'Cargando', 'En ruta', 'Entregado'];
 
-function PedidoCard({ pedido, T, onClick }) {
+function PedidoCard({ pedido, T, onClick, onCancel }) {
   const primerItem = pedido.pedido_items?.[0];
   const kind = primerItem?.productos?.tipo || 'arena';
   const stepIdx = ESTADO_STEPS.indexOf(pedido.estado);
   const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   return (
     <div onClick={onClick} style={{
@@ -64,13 +65,29 @@ function PedidoCard({ pedido, T, onClick }) {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: 13, color: T.ink3 }}>
-          📍 {pedido.direccion_entrega?.slice(0, 45)}
+        <div style={{ fontSize: 13, color: T.ink3, flex: 1, marginRight: 12 }}>
+          📍 {pedido.direccion_entrega?.slice(0, 40)}
         </div>
         <div style={{ fontSize: 20, fontWeight: 800, color: T.ink, fontFamily: T.display }}>
           {fmt(pedido.total)}
         </div>
       </div>
+
+      {pedido.estado === 'pendiente' && (
+        <div onClick={e => e.stopPropagation()} style={{ borderTop: `1px solid ${T.line}`, paddingTop: 12, marginTop: 4 }}>
+          {confirmCancel ? (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: T.danger, fontWeight: 600, flex: 1 }}>¿Cancelar este pedido?</span>
+              <button onClick={() => setConfirmCancel(false)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${T.line}`, background: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: T.ink3 }}>No</button>
+              <button onClick={() => onCancel(pedido.id)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: T.danger, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Sí, cancelar</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmCancel(true)} style={{ fontSize: 12, color: T.danger, fontWeight: 600, background: 'none', border: `1px solid ${T.danger}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: T.body }}>
+              Cancelar pedido
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -95,6 +112,11 @@ export function ScreenPedidos({ theme: T }) {
   const filtrados = filtro === 'todos' ? pedidos
     : filtro === 'activos' ? pedidos.filter(p => !['entregado','cancelado'].includes(p.estado))
     : pedidos.filter(p => p.estado === 'entregado');
+
+  const handleCancelar = useCallback(async (pedidoId) => {
+    await cancelarPedido(pedidoId);
+    setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, estado: 'cancelado' } : p));
+  }, []);
 
   return (
     <div style={{ minHeight: 'calc(100vh - 52px)', background: T.bg, fontFamily: T.body }}>
@@ -142,7 +164,7 @@ export function ScreenPedidos({ theme: T }) {
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {filtrados.map(p => (
-            <PedidoCard key={p.id} pedido={p} T={T} onClick={() => navigate('/cliente/tracking', { state: { pedido: p } })}/>
+            <PedidoCard key={p.id} pedido={p} T={T} onCancel={handleCancelar} onClick={() => navigate('/cliente/tracking', { state: { pedido: p } })}/>
           ))}
         </div>
       </div>

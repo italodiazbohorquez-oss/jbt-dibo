@@ -143,6 +143,16 @@ export async function actualizarProducto(id, data) {
   return { data: prod, error };
 }
 
+export async function cancelarPedido(pedidoId) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .update({ estado: 'cancelado' })
+    .eq('id', pedidoId)
+    .select()
+    .single();
+  return { data, error };
+}
+
 export async function eliminarProducto(id) {
   const { data, error } = await supabase
     .from('productos')

@@ -71,7 +71,7 @@ export function ScreenHome({ theme: T }) {
             { i: 'calc', l: 'Cotizar', desc: 'Calcula tu presupuesto', path: '/cliente/cotizador' },
             { i: 'doc', l: 'Mis pedidos', desc: 'Ver historial', path: '/cliente/pedidos' },
             { i: 'truck', l: 'Rastrear', desc: 'Dónde está tu envío', path: '/cliente/tracking' },
-            { i: 'chat', l: 'Soporte', desc: 'WhatsApp y ayuda', path: '#' },
+            { i: 'chat', l: 'Soporte', desc: 'WhatsApp y ayuda', path: '/cliente/cuenta' },
           ].map((x) => {
             const Ic = I[x.i];
             return (

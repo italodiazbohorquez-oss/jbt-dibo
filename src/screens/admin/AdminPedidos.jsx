@@ -4,7 +4,7 @@ import { I } from '../../components/Icons';
 import { BtnPrimary, BtnSecondary, Badge } from '../../components/UI';
 import { ProductIcon } from '../../components/ProductIcon';
 import { AdminSidebar } from './AdminSidebar';
-import { getPedidos, actualizarEstadoPedido, crearPedido, getProductos } from '../../lib/api';
+import { getPedidos, actualizarEstadoPedido, crearPedido, getProductos, getChoferes, asignarChoferAPedido } from '../../lib/api';
 
 const ESTADO_BADGE  = { pendiente: 'neutral', confirmado: 'primary', cargando: 'warn', en_ruta: 'accent', entregado: 'ok', cancelado: 'danger' };
 const ESTADO_LABEL  = { pendiente: 'Pendiente', confirmado: 'Confirmado', cargando: 'Cargando', en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado' };
@@ -172,8 +172,13 @@ export function AdminPedidos({ theme: T }) {
   const [updating, setUpdating] = useState(null);
   const [modalNuevo, setModalNuevo] = useState(location.state?.nuevo === true);
   const [waPending, setWaPending] = useState(null);
+  const [choferes, setChoferes] = useState([]);
+  const [asignando, setAsignando] = useState(false);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    getChoferes().then(({ data }) => setChoferes(data || []));
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -354,6 +359,40 @@ export function AdminPedidos({ theme: T }) {
                   <span style={{ fontWeight: 800, color: T.ink, fontFamily: T.display }}>{fmt(selected.total)}</span>
                 </div>
               </div>
+
+              {/* Asignar chofer */}
+              {['confirmado','cargando','en_ruta'].includes(selected.estado) && (
+                <div style={{ marginBottom: 12, background: T.chip, borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>🚛 Chofer asignado</div>
+                  <select
+                    value={selected.chofer_id || ''}
+                    disabled={asignando}
+                    onChange={async e => {
+                      const choferId = e.target.value || null;
+                      setAsignando(true);
+                      const { data } = await asignarChoferAPedido(selected.id, choferId);
+                      if (data) {
+                        const chofer = choferes.find(c => c.id === choferId) || null;
+                        const updated = { ...selected, chofer_id: choferId, choferes: chofer };
+                        setPedidos(prev => prev.map(p => p.id === selected.id ? updated : p));
+                        setSelected(updated);
+                      }
+                      setAsignando(false);
+                    }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: `1.5px solid ${T.line}`, fontSize: 13, fontFamily: T.body, color: T.ink, background: '#fff', outline: 'none', cursor: 'pointer' }}>
+                    <option value="">— Sin chofer —</option>
+                    {choferes.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre} · {c.placa}</option>
+                    ))}
+                  </select>
+                  {selected.choferes?.telefono && (
+                    <a href={`https://wa.me/51${selected.choferes.telefono}`} target="_blank" rel="noreferrer"
+                      style={{ display: 'block', marginTop: 8, textAlign: 'center', fontSize: 12, color: '#25D366', fontWeight: 700, textDecoration: 'none' }}>
+                      📲 WhatsApp al chofer
+                    </a>
+                  )}
+                </div>
+              )}
 
               {NEXT_ESTADO[selected.estado] && (
                 <button onClick={() => avanzarEstado(selected)} disabled={updating === selected.id}
