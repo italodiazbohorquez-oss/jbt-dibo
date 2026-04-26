@@ -14,7 +14,7 @@ export async function getProductos() {
 export async function getPedidos({ limite = 20 } = {}) {
   const { data, error } = await supabase
     .from('pedidos')
-    .select(`*, profiles(nombre, empresa, celular), pedido_items(*, productos(nombre, tipo, unidad))`)
+    .select(`*, profiles(nombre, empresa, telefono), pedido_items(*, productos(nombre, tipo, unidad))`)
     .order('created_at', { ascending: false })
     .limit(limite);
   return { data: data ?? [], error };
@@ -192,7 +192,7 @@ export async function actualizarEstadoChofer(choferId, estado) {
 export async function getPedidosEnRuta() {
   const { data, error } = await supabase
     .from('pedidos')
-    .select(`*, profiles(nombre, celular), pedido_items(*, productos(nombre, tipo, unidad))`)
+    .select(`*, profiles(nombre, telefono), pedido_items(*, productos(nombre, tipo, unidad))`)
     .in('estado', ['confirmado', 'cargando', 'en_ruta'])
     .order('created_at', { ascending: false });
   return { data: data ?? [], error };

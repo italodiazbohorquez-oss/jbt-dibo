@@ -103,7 +103,8 @@ export function ScreenPedidos({ theme: T }) {
 
   useEffect(() => {
     if (!user) return;
-    getPedidosByCliente(user.id).then(({ data }) => {
+    getPedidosByCliente(user.id).then(({ data, error }) => {
+      if (error) console.error('Error cargando pedidos cliente:', error);
       setPedidos(data || []);
       setLoading(false);
     });

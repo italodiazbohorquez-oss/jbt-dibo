@@ -182,7 +182,8 @@ export function AdminPedidos({ theme: T }) {
 
   async function load() {
     setLoading(true);
-    const { data } = await getPedidos({ limite: 50 });
+    const { data, error } = await getPedidos({ limite: 50 });
+    if (error) console.error('Error cargando pedidos:', error);
     setPedidos(data);
     setLoading(false);
   }
@@ -196,7 +197,7 @@ export function AdminPedidos({ theme: T }) {
       const updated = { ...pedido, estado: next };
       setPedidos(prev => prev.map(p => p.id === pedido.id ? updated : p));
       if (selected?.id === pedido.id) setSelected(updated);
-      const phone = pedido.profiles?.celular;
+      const phone = pedido.profiles?.telefono;
       if (phone && WA_MSG[next]) {
         setWaPending({ numero: pedido.numero, phone, estado: next });
       }
@@ -318,7 +319,7 @@ export function AdminPedidos({ theme: T }) {
                 <div style={{ fontSize: 11, color: T.ink3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Cliente</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{selected.profiles?.nombre || 'Cliente'}</div>
                 {selected.profiles?.empresa && <div style={{ fontSize: 11, color: T.ink3 }}>{selected.profiles.empresa}</div>}
-                {selected.profiles?.celular && (
+                {selected.profiles?.telefono && (
                   <div style={{ fontSize: 11, color: T.ink3, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                     📱 {selected.profiles.celular}
                   </div>
