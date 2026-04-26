@@ -19,7 +19,95 @@ import { AdminPedidos } from './screens/admin/AdminPedidos';
 
 const T = TOKENS.cantera;
 
-function ClientTopNav({ themeKey, setThemeKey }) {
+// ─── Login exclusivo para administradores ────────────────────────────────────
+function AdminLogin() {
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const { error: err } = await signIn({ email, password });
+      if (err) throw err;
+      // App re-renders automáticamente cuando AuthContext detecta la sesión
+    } catch (err) {
+      setError(err.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : (err.message || 'Error al iniciar sesión'));
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: T.body }}>
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: T.accent, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+            <span style={{ color: '#fff', fontWeight: 900, fontSize: 22, fontFamily: T.display }}>JB</span>
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', fontFamily: T.display }}>JBT DIBO S.A.C</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', marginTop: 4 }}>Panel de Administración</div>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 7 }}>Correo electrónico</label>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus
+              placeholder="admin@jbtdibo.com"
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.08)', color: '#fff', fontSize: 14, fontFamily: T.body, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 7 }}>Contraseña</label>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              placeholder="••••••••"
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.08)', color: '#fff', fontSize: 14, fontFamily: T.body, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {error && (
+            <div style={{ background: 'rgba(220,50,50,.15)', border: '1px solid rgba(220,50,50,.3)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#FF8080', fontWeight: 600 }}>
+              {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading} style={{ marginTop: 4, padding: '14px', borderRadius: 12, border: 'none', background: loading ? 'rgba(255,255,255,.1)' : T.accent, color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: T.body }}>
+            {loading ? 'Verificando...' : 'Acceder al panel'}
+          </button>
+        </form>
+
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
+          Acceso restringido — solo personal autorizado
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Acceso denegado (logueado pero no es admin) ─────────────────────────────
+function AdminAccessDenied() {
+  const { signOut } = useAuth();
+  return (
+    <div style={{ minHeight: '100vh', background: '#0A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: T.body }}>
+      <div style={{ textAlign: 'center', maxWidth: 380, padding: 24 }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', fontFamily: T.display, marginBottom: 8 }}>Sin acceso</div>
+        <div style={{ fontSize: 14, color: 'rgba(255,255,255,.5)', marginBottom: 28 }}>
+          Tu cuenta no tiene permisos de administrador. Ingresa con una cuenta admin.
+        </div>
+        <button onClick={signOut} style={{ padding: '12px 28px', background: T.accent, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: T.body }}>
+          Cerrar sesión e intentar con otra cuenta
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Navbar de clientes ───────────────────────────────────────────────────────
+function ClientTopNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut } = useAuth();
@@ -29,7 +117,6 @@ function ClientTopNav({ themeKey, setThemeKey }) {
   const isB2B = location.pathname.startsWith('/b2b');
   const rol = profile?.rol;
 
-  // Maestro de obras sees both; cliente only sees Tienda
   const navItems = [
     rol !== 'ferreteria' && { path: '/cliente/home', label: 'Tienda', icon: '🏠', active: isClient },
     (rol === 'maestro' || rol === 'ferreteria') && { path: '/b2b', label: 'Ferretería B2B', icon: '🏪', active: isB2B },
@@ -66,7 +153,6 @@ function ClientTopNav({ themeKey, setThemeKey }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-        {/* Cart button */}
         <button onClick={() => navigate('/cliente/checkout')} style={{
           position: 'relative', padding: '6px 14px', borderRadius: 8, border: `1px solid ${T.line}`,
           background: totalItems > 0 ? T.primarySoft : '#fff', cursor: 'pointer',
@@ -79,7 +165,6 @@ function ClientTopNav({ themeKey, setThemeKey }) {
           )}
         </button>
 
-        {/* Pedidos */}
         <button onClick={() => navigate('/cliente/pedidos')} style={{
           padding: '6px 14px', borderRadius: 8, border: `1px solid ${T.line}`,
           background: location.pathname === '/cliente/pedidos' ? T.primarySoft : '#fff',
@@ -113,13 +198,12 @@ function ClientTopNav({ themeKey, setThemeKey }) {
 function SmartRedirect() {
   const { profile } = useAuth();
   if (!profile) return null;
-  if (profile.rol === 'admin') return <Navigate to="/admin" replace/>;
   if (profile.rol === 'ferreteria') return <Navigate to="/b2b" replace/>;
   return <Navigate to="/cliente/home" replace/>;
 }
 
+// ─── App principal ────────────────────────────────────────────────────────────
 function AppContent() {
-  const [themeKey, setThemeKey] = useState('cantera');
   const location = useLocation();
   const { user, profile, loading } = useAuth();
 
@@ -136,22 +220,10 @@ function AppContent() {
     </div>
   );
 
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="/" element={<LandingScreen/>}/>
-        <Route path="/login" element={<LoginScreen initialMode="login"/>}/>
-        <Route path="/register" element={<LoginScreen initialMode="register"/>}/>
-        {/* Si intentan ir a /admin sin sesión → llevar a login, no a landing */}
-        <Route path="/admin/*" element={<Navigate to="/login" replace/>}/>
-        <Route path="/admin" element={<Navigate to="/login" replace/>}/>
-        <Route path="*" element={<Navigate to="/" replace/>}/>
-      </Routes>
-    );
-  }
-
+  // ── Rutas /admin — completamente independientes ───────────────────────────
   if (isAdmin) {
-    if (profile && profile.rol !== 'admin') return <Navigate to="/cliente/home" replace/>;
+    if (!user) return <AdminLogin/>;
+    if (profile && profile.rol !== 'admin') return <AdminAccessDenied/>;
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: T.bg, overflow: 'hidden', fontFamily: T.body }}>
         <Routes>
@@ -165,9 +237,22 @@ function AppContent() {
     );
   }
 
+  // ── Rutas públicas (sin sesión) ───────────────────────────────────────────
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/" element={<LandingScreen/>}/>
+        <Route path="/login" element={<LoginScreen initialMode="login"/>}/>
+        <Route path="/register" element={<LoginScreen initialMode="register"/>}/>
+        <Route path="*" element={<Navigate to="/" replace/>}/>
+      </Routes>
+    );
+  }
+
+  // ── Rutas de clientes ─────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      <ClientTopNav themeKey={themeKey} setThemeKey={setThemeKey}/>
+      <ClientTopNav/>
       <div style={{ marginTop: 52 }}>
         <Routes>
           <Route path="/" element={<SmartRedirect/>}/>
