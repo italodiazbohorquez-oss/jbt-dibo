@@ -82,6 +82,7 @@ export function ScreenCheckout({ theme: T }) {
   const [gpsError, setGpsError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
   const fmt = (n) => 'S/' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 0 });
   const totalConDespacho = total >= 500 ? total : total + 50;
 
@@ -121,10 +122,15 @@ export function ScreenCheckout({ theme: T }) {
     } finally { setGpsLoading(false); }
   }
 
-  async function handleConfirmar() {
+  function handleConfirmar() {
     if (!user || items.length === 0) return;
     if (!direccion.trim()) { setError('Ingresa la dirección de entrega para continuar.'); return; }
-    setLoading(true); setError(null);
+    setError(null);
+    setShowConfirm(true);
+  }
+
+  async function handleProceder() {
+    setLoading(true); setError(null); setShowConfirm(false);
 
     const cartItems = items.map(i => ({
       producto_id: i.producto_id || null,
@@ -141,7 +147,7 @@ export function ScreenCheckout({ theme: T }) {
       `Horario: ${franjaLabel}`,
     ].filter(Boolean).join(' · ');
 
-    const { error: err } = await crearPedido({
+    const { data: pedido, error: err } = await crearPedido({
       clienteId: user.id,
       items: cartItems,
       direccion: direccionCompleta,
@@ -155,7 +161,7 @@ export function ScreenCheckout({ theme: T }) {
       return;
     }
     vaciar();
-    navigate('/cliente/pedidos');
+    navigate('/cliente/pedidos', { state: { nuevoPedido: pedido } });
   }
 
   if (items.length === 0) {
@@ -455,6 +461,38 @@ export function ScreenCheckout({ theme: T }) {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmación */}
+      {showConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 420, fontFamily: T.body }}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🧱</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: T.ink, textAlign: 'center', fontFamily: T.display, marginBottom: 6 }}>¿Confirmar pedido?</div>
+            <div style={{ fontSize: 13, color: T.ink3, textAlign: 'center', marginBottom: 20 }}>
+              Tu pedido por <strong style={{ color: T.ink }}>{fmt(totalConDespacho)}</strong> será enviado a JBT DIBO para su procesamiento.
+            </div>
+            <div style={{ background: T.bg, borderRadius: 12, padding: '12px 16px', marginBottom: 20, fontSize: 13 }}>
+              {items.map(x => (
+                <div key={x.producto_id ?? x.nombre} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: T.ink2 }}>
+                  <span>{x.nombre} ×{x.cantidad}</span>
+                  <span style={{ fontWeight: 700, color: T.ink }}>{fmt(x.subtotal)}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: `1px solid ${T.line}`, marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: T.ink }}>
+                <span>Total</span><span>{fmt(totalConDespacho)}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowConfirm(false)} style={{ flex: 1, padding: '13px 0', borderRadius: 12, border: `1.5px solid ${T.line}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', color: T.ink3, fontFamily: T.body }}>
+                Volver
+              </button>
+              <button onClick={handleProceder} style={{ flex: 2, padding: '13px 0', borderRadius: 12, border: 'none', background: T.accent, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: T.display }}>
+                Sí, confirmar pedido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Barra inferior fija en móvil */}
       {isMobile && (
